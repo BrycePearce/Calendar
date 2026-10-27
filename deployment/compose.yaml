@@ -1,0 +1,38 @@
+services:
+  exporter:
+    build:
+      context: ..
+      dockerfile: deployment/exporter.Dockerfile
+    image: calendar-exporter:local
+    restart: unless-stopped
+    user: "${EXPORTER_UID:-1000}:${EXPORTER_GID:-1000}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    volumes:
+      - ../private/exporter.json:/run/config/exporter.json:ro
+      - ../private/sonarr-key:/run/secrets/sonarr-key:ro
+      - ../private/radarr-key:/run/secrets/radarr-key:ro
+      - ../runtime/public:/srv/public
+      - ../runtime/private-state:/srv/private-state
+    networks: [exporter]
+  web:
+    build:
+      context: ..
+      dockerfile: deployment/web.Dockerfile
+    image: calendar-web:local
+    restart: unless-stopped
+    user: "${WEB_UID:-101}:${WEB_GID:-101}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    ports: ["127.0.0.1:8080:8080"]
+    volumes:
+      - ../runtime/public:/srv/public:ro
+      - ../private/public-config.json:/srv/site/config.json:ro
+    networks: [frontend]
+networks:
+  exporter: {}
+  frontend: {}

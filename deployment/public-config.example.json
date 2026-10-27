@@ -1,0 +1,9 @@
+{
+  "title": "EdonCloud Calendar",
+  "brandMark": "E",
+  "tagline": "Your next great watch, on the horizon.",
+  "timezone": "local",
+  "requestUrl": "https://requests.example.com",
+  "requestLabel": "Request a title",
+  "staleAfterMinutes": 60
+}

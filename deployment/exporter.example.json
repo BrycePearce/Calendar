@@ -1,0 +1,22 @@
+{
+  "sonarr": {
+    "url": "http://sonarr.example.invalid:8989",
+    "apiKeyFile": "/run/secrets/sonarr-key",
+    "apiVersion": "v3",
+    "allowIds": [],
+    "monitoredOnly": false
+  },
+  "radarr": {
+    "url": "http://radarr.example.invalid:7878",
+    "apiKeyFile": "/run/secrets/radarr-key",
+    "apiVersion": "v3",
+    "allowIds": [],
+    "monitoredOnly": false
+  },
+  "intervalMinutes": 15,
+  "daysBack": 30,
+  "daysAhead": 180,
+  "timeoutMs": 10000,
+  "publicDir": "/srv/public",
+  "stateDir": "/srv/private-state"
+}

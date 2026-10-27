@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+dist
+node_modules
+apps/web/src/routeTree.gen.ts
+artifacts
+runtime
+private
+test-results
+.tools

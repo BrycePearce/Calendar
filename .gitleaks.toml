@@ -1,0 +1,6 @@
+title = "Calendar secret scanning"
+[extend]
+useDefault = true
+[[allowlists]]
+description = "Generated dependency metadata and ignored local tools only"
+paths = ['''(^|/)node_modules/''', '''(^|/)\.tools/''', '''(^|/)\.git/''', '''pnpm-lock\.yaml$''']

@@ -1,0 +1,35 @@
+name: checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm lint && pnpm typecheck && pnpm format:check && pnpm test
+      - name: Gitleaks working tree and complete history
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 dir /repo --config /repo/.gitleaks.toml --redact --no-banner
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 git /repo --config /repo/.gitleaks.toml --redact --no-banner --log-opts=--all
+      - name: Build production containers
+        run: |
+          docker build -f deployment/web.Dockerfile -t calendar-web:test .
+          docker build -f deployment/exporter.Dockerfile -t calendar-exporter:test .
+      - name: Serve actual production image without Start runtime
+        run: |
+          docker run -d --name calendar-web --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 calendar-web:test
+          for i in $(seq 1 30); do curl -f http://127.0.0.1:8080/healthz && break; sleep 1; done
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
