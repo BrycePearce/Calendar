@@ -67,3 +67,17 @@ pnpm scan
 Browser tests use synthetic data against the built web container at `http://127.0.0.1:8080` (override with `TEST_BASE_URL`): run `pnpm exec playwright install chromium`, then `pnpm test:e2e`. GitHub CI runs checks and container tests automatically; it does not deploy.
 
 No application license has been selected. Bundled font and UI component license notices are in `licenses/`.
+
+## Unraid icons
+
+`assets/calendar.png` is the transparent container icon; `assets/calendar.svg` is its editable source. Host the PNG at a public HTTPS URL (for a public GitHub repo, use its raw file URL). Set `CALENDAR_ICON_URL` in an ignored `.env` before recreating the containers to apply the Docker icon labels.
+
+For the native Docker tab's template lookup, run this on Unraid after creating both containers:
+
+```sh
+bash deployment/install-unraid-icons.sh https://example.com/calendar.png
+```
+
+Replace the example URL with the actual PNG URL. The installer follows the running containers' names and writes matching `my-<name>.xml` icon metadata into Unraid's template directory. It refuses to overwrite a different existing template. Set `COMPOSE_PROJECT_NAME` if your stack uses a project name other than `edoncloud-calendar`.
+
+These are icon-only templates: continue using Compose to update/recreate containers, not Unraid's template editor, which does not have their mounts or security settings. Both containers share the icon; the exporter keeps API keys separate from the public web server.

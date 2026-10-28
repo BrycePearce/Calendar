@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="body" x2=".8" y2="1"><stop stop-color="#253e50"/><stop offset="1" stop-color="#111b2b"/></linearGradient>
+    <linearGradient id="cyan" x2="1" y2="1"><stop stop-color="#a0f3ff"/><stop offset="1" stop-color="#38b9d3"/></linearGradient>
+    <linearGradient id="gold" x2="1" y2="1"><stop stop-color="#ffe4a6"/><stop offset="1" stop-color="#eda852"/></linearGradient>
+  </defs>
+  <rect x="22" y="38" width="212" height="196" rx="42" fill="#060d17" opacity=".35"/>
+  <rect x="18" y="28" width="220" height="200" rx="38" fill="url(#body)" stroke="#416174" stroke-width="3"/>
+  <path d="M56 28h144a38 38 0 0 1 38 38v30H18V66a38 38 0 0 1 38-38Z" fill="url(#cyan)"/>
+  <path d="M77 18v34M179 18v34" stroke="#122a3a" stroke-width="15" stroke-linecap="round"/>
+  <path d="M77 16v28M179 16v28" stroke="#b0f0fa" stroke-width="8" stroke-linecap="round"/>
+  <rect x="48" y="119" width="33" height="30" rx="9" fill="#71dcf2"/>
+  <rect x="96" y="119" width="33" height="30" rx="9" fill="#71dcf2" opacity=".55"/>
+  <rect x="48" y="165" width="33" height="30" rx="9" fill="#71dcf2" opacity=".35"/>
+  <rect x="96" y="165" width="33" height="30" rx="9" fill="#71dcf2" opacity=".2"/>
+  <path d="m181 113 10 26 28 10-28 11-10 28-11-28-27-11 27-10Z" fill="url(#gold)"/>
+  <circle cx="208" cy="193" r="7" fill="#edbc73" opacity=".65"/>
+</svg>

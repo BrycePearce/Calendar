@@ -4,6 +4,8 @@ services:
       context: ..
       dockerfile: deployment/exporter.Dockerfile
     image: calendar-exporter:local
+    labels:
+      net.unraid.docker.icon: "${CALENDAR_ICON_URL:-}"
     restart: unless-stopped
     user: "${EXPORTER_UID:-1000}:${EXPORTER_GID:-1000}"
     read_only: true
@@ -22,6 +24,8 @@ services:
       context: ..
       dockerfile: deployment/web.Dockerfile
     image: calendar-web:local
+    labels:
+      net.unraid.docker.icon: "${CALENDAR_ICON_URL:-}"
     restart: unless-stopped
     user: "${WEB_UID:-101}:${WEB_GID:-101}"
     read_only: true
