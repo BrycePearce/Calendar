@@ -812,3 +812,46 @@ test("view selection works when storage is unavailable", async ({ page }) => {
   await page.reload();
   await expect(page.locator(".fc-dayGridMonth-view")).toBeVisible();
 });
+
+test("same-day episodes share a card and retain individual details", async ({
+  page,
+}) => {
+  const snapshot = demoSnapshot(fixed);
+  snapshot.events = [5, 6].map((episode) => ({
+    id: `sonarr:${episode}:air`,
+    media: "tv" as const,
+    releaseType: "air" as const,
+    title: "VisionQuest",
+    season: 1,
+    episode,
+    episodeTitle: episode === 5 ? "Firewall" : "Deadlock",
+    at: episode === 5 ? "2026-10-16T01:00:00Z" : "2026-10-16T01:50:00Z",
+  }));
+  await page.route("**/data/calendar.json", (route) =>
+    route.fulfill({ json: snapshot }),
+  );
+  await page.route("**/config.json", (route) =>
+    route.fulfill({ json: { title: "Calendar", timezone: "local" } }),
+  );
+  await page.goto("/?view=month&week=2026-10-11");
+  const card = page
+    .locator(".fc-daygrid-event")
+    .filter({ hasText: "VisionQuest" });
+  await expect(card).toHaveCount(1);
+  await expect(card).toContainText("S01E05–06");
+  await card.click();
+  const details = page.getByRole("dialog");
+  await expect(details.locator(".detail-episodes li")).toHaveCount(2);
+  await expect(details).toContainText("Firewall");
+  await expect(details).toContainText("Deadlock");
+  await expect(details).toContainText("6:00 PM");
+  await expect(details).toContainText("6:50 PM");
+  await page.getByRole("button", { name: "Close details" }).click();
+  await page.getByRole("button", { name: "Upcoming", exact: true }).click();
+  await expect(page.locator(".agenda-event")).toHaveCount(1);
+  await expect(page.locator(".agenda-event")).toContainText("S01E05–06");
+  await page.getByRole("textbox", { name: "Search titles" }).fill("Deadlock");
+  await page.getByRole("textbox", { name: "Search titles" }).press("Enter");
+  await expect(page.locator(".agenda-event")).toContainText("S01E06");
+  await expect(page.locator(".agenda-event")).not.toContainText("Firewall");
+});

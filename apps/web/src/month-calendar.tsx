@@ -7,8 +7,12 @@ import type {
   EventClickArg,
   EventContentArg,
 } from "@fullcalendar/core";
-import type { CalendarEvent, PublicConfig } from "@calendar/schema";
-import { episodeLabel } from "./lib";
+import type { PublicConfig } from "@calendar/schema";
+import {
+  type DisplayEvent,
+  groupedEpisodeLabel,
+  groupedEpisodeTitle,
+} from "./episode-groups";
 import { labels, timeLabel } from "./event-format";
 const plugins = [dayGridPlugin];
 const views = {
@@ -37,9 +41,9 @@ export default memo(function MonthCalendar({
   week: string;
   standardMonth?: boolean;
   density?: Density;
-  events: CalendarEvent[];
+  events: DisplayEvent[];
   config: PublicConfig;
-  openEvent: (event: CalendarEvent) => void;
+  openEvent: (event: DisplayEvent) => void;
   onReady: () => void;
 }) {
   const calendar = useRef<FullCalendar>(null);
@@ -103,14 +107,14 @@ export default memo(function MonthCalendar({
   // synchronous height/overflow recalculations. textContent keeps titles inert.
   const renderEvent = useCallback(
     (info: EventContentArg) => {
-      const event = info.event.extendedProps.record as CalendarEvent;
+      const event = info.event.extendedProps.record as DisplayEvent;
       const card = document.createElement("div");
       card.className = "event-content";
       const meta = document.createElement("span");
       meta.className = "event-meta";
       meta.textContent =
         event.media === "tv"
-          ? `${timeLabel(event, config)} · ${episodeLabel(event)}`
+          ? `${timeLabel(event, config)} · ${groupedEpisodeLabel(event)}`
           : labels[event.releaseType];
       const title = document.createElement("strong");
       const icon = document.createElementNS(
@@ -135,10 +139,10 @@ export default memo(function MonthCalendar({
       meta.prepend(icon);
       title.textContent = event.title;
       card.append(meta, title);
-      if (event.media === "tv" && event.episodeTitle) {
+      if (event.media === "tv" && groupedEpisodeTitle(event)) {
         const episode = document.createElement("span");
         episode.className = "episode-title";
-        episode.textContent = event.episodeTitle;
+        episode.textContent = groupedEpisodeTitle(event) ?? "";
         card.append(episode);
       }
       return { domNodes: [card] };
@@ -147,7 +151,7 @@ export default memo(function MonthCalendar({
   );
   const handleEventClick = useCallback(
     (info: EventClickArg) =>
-      openEvent(info.event.extendedProps.record as CalendarEvent),
+      openEvent(info.event.extendedProps.record as DisplayEvent),
     [openEvent],
   );
   return (

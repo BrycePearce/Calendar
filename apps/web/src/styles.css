@@ -1362,3 +1362,21 @@ h2 > span {
 .standard-shell .skeleton-month-grid > div {
   min-height: 270px;
 }
+
+.detail-episodes {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.detail-episodes li {
+  padding: 10px 0;
+  border-top: 1px solid #333e4d;
+  font-size: 14px;
+}
+.detail-episodes small {
+  display: block;
+  margin-top: 5px;
+  color: #8fa0b7;
+}

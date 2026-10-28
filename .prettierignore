@@ -7,4 +7,5 @@ artifacts
 runtime
 private
 test-results
+.test-tmp
 .tools

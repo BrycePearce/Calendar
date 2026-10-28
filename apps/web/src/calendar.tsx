@@ -42,7 +42,6 @@ import {
   publicConfigSchema,
   snapshotSchema,
   releaseTypes,
-  type CalendarEvent,
   type Search,
   type PublicConfig,
 } from "@calendar/schema";
@@ -55,6 +54,12 @@ import {
   DialogTitle,
 } from "./components/ui/dialog";
 import { dayOf, episodeLabel } from "./lib";
+import {
+  type DisplayEvent,
+  groupEpisodes,
+  groupedEpisodeLabel,
+  groupedEpisodeTitle,
+} from "./episode-groups";
 import { stringifyCalendarSearch } from "./search";
 
 const loadMonthCalendar = () => import("./month-calendar");
@@ -148,7 +153,7 @@ function CalendarContent({
   const initialView = preferred === "month" ? "month" : undefined;
   const [futureDays, setFutureDays] = useState(30);
   const [pastDays, setPastDays] = useState(0);
-  const [selected, setSelected] = useState<CalendarEvent | null>(null);
+  const [selected, setSelected] = useState<DisplayEvent | null>(null);
   const [clock, setClock] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setClock(Date.now()), 60000);
@@ -340,7 +345,13 @@ function CalendarContent({
         ),
     [events, dates, view, week, gridEnd, rangeStart, rangeEnd],
   );
-  const groups = Map.groupBy(visible, (e) => dates.get(e.id)!);
+  const displayEvents = useMemo(
+    () => groupEpisodes(events, config.timezone),
+    [events, config.timezone],
+  );
+  const groups = Map.groupBy(groupEpisodes(visible, config.timezone), (e) =>
+    dates.get(e.id)!,
+  );
   if (view === "agenda" && !groups.has(todayDate)) groups.set(todayDate, []);
   const orderedGroups = [...groups].sort(([a], [b]) => a.localeCompare(b));
   const canShowEarlier = !!data && rangeStart > data.coverage.start;
@@ -362,7 +373,7 @@ function CalendarContent({
       const c = data.sources[source].coverage;
       return c && (week < c.start || gridEnd > c.end);
     });
-  const openEvent = useCallback((e: CalendarEvent) => {
+  const openEvent = useCallback((e: DisplayEvent) => {
     focusReturn.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -588,7 +599,7 @@ function CalendarContent({
                       week={week}
                       density={density}
                       standardMonth={view === "monthly"}
-                      events={events}
+                      events={displayEvents}
                       config={config}
                       openEvent={openEvent}
                       onReady={onMonthReady}
@@ -669,7 +680,7 @@ function CalendarContent({
                                 <strong>{e.title}</strong>
                                 <small>
                                   {e.media === "tv"
-                                    ? `${episodeLabel(e)}${e.episodeTitle ? " · " + e.episodeTitle : ""}`
+                                    ? `${groupedEpisodeLabel(e)}${groupedEpisodeTitle(e) ? " · " + groupedEpisodeTitle(e) : ""}`
                                     : "Movie release"}
                                 </small>
                               </span>
@@ -793,9 +804,24 @@ function CalendarContent({
             <DialogTitle>{selected.title}</DialogTitle>
             <DialogDescription>
               {selected.media === "tv"
-                ? `${episodeLabel(selected)}${selected.episodeTitle ? " · " + selected.episodeTitle : ""}`
+                ? `${groupedEpisodeLabel(selected)}${selected.episodes && selected.episodes.length > 1 ? "" : selected.episodeTitle ? " · " + selected.episodeTitle : ""}`
                 : "An upcoming movie release."}
             </DialogDescription>
+            {selected.episodes && selected.episodes.length > 1 && (
+              <ul className="detail-episodes">
+                {selected.episodes.map((episode) => (
+                  <li key={episode.id}>
+                    <strong>
+                      {episodeLabel(episode)}
+                      {episode.episodeTitle ? ` · ${episode.episodeTitle}` : ""}
+                    </strong>
+                    <small>
+                      {timeLabel(episode, config)} · {timezone}
+                    </small>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className="detail-date">
               <CalendarDays size={18} />
               <span>

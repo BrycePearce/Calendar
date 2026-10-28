@@ -11,6 +11,7 @@ runtime/
 *.local.*
 *.log
 test-results/
+.test-tmp/
 playwright-report/
 artifacts/
 .tools/
