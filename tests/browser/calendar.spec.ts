@@ -480,19 +480,29 @@ test("month reveals once after configuration, data and code are ready", async ({
   });
   try {
     await page.goto("/?view=month", { waitUntil: "domcontentloaded" });
+    const panel = page.locator(".calendar-panel");
+    // Wait for hydration to apply the stored density before measuring the shell.
+    await expect(page.locator(".month-shell .month-skeleton")).toBeVisible();
     await expect(page.locator(".month-skeleton")).toBeVisible();
-    const initial = await page.locator(".calendar-panel").boundingBox();
+    const initial = await panel.boundingBox();
+    expect(initial).not.toBeNull();
+    const configResponse = page.waitForResponse("**/config.json");
     releaseConfig();
+    await (await configResponse).finished();
     await expect(
       page.getByRole("button", { name: "Today", exact: true }),
     ).toHaveCount(0);
+    const dataResponse = page.waitForResponse("**/data/calendar.json");
     releaseData();
+    await (await dataResponse).finished();
     await expect(page.locator(".month-skeleton")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Today", exact: true }),
     ).toHaveCount(0);
-    const waiting = await page.locator(".calendar-panel").boundingBox();
-    expect(waiting).toEqual(initial);
+    // React replaces the query-loading shell with the lazy-code Suspense
+    // fallback. A one-shot measurement can catch the old node detaching.
+    // Re-resolve the locator while still requiring exactly the same geometry.
+    await expect.poll(() => panel.boundingBox()).toEqual(initial);
     await page.screenshot({
       path: `artifacts/${info.project.name}-month-loading.png`,
     });
