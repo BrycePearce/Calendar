@@ -17,8 +17,8 @@ import {
   type Snapshot,
   type Coverage,
 } from "@calendar/schema";
-import type { PrivateConfig, SourceConfig } from "./config.js";
-import { normalize } from "./adapters.js";
+import type { PrivateConfig, SourceConfig } from "./config.server";
+import { normalize } from "./adapters.server";
 
 const stateSchema = z
   .object({
@@ -64,9 +64,18 @@ export async function prepareDirectories(config: PrivateConfig) {
     state = await realpath(config.stateDir);
   if (inside(pub, state) || inside(state, pub))
     throw new Error("Public and private directories must be separate");
-  for (const source of [config.sonarr, config.radarr])
-    if (source && inside(pub, await realpath(source.apiKeyFile)))
+  for (const source of [config.sonarr, config.radarr]) {
+    if (!source?.apiKeyFile) continue;
+    const path = await realpath(source.apiKeyFile).catch(
+      (error: NodeJS.ErrnoException) => {
+        // A missing credential is a source outage, not an outage of both sources.
+        if (error.code === "ENOENT") return resolve(source.apiKeyFile!);
+        throw new Error("Credential location unavailable");
+      },
+    );
+    if (inside(pub, path))
       throw new Error("Secret file must be outside public directory");
+  }
 }
 export class Exporter {
   private running = false;
@@ -160,7 +169,11 @@ export async function fetchCalendar(
   timeoutMs: number,
   fetcher: typeof fetch = fetch,
 ): Promise<unknown> {
-  const key = (await readFile(resolve(config.apiKeyFile), "utf8")).trim();
+  const key = (
+    config.apiKeyFile
+      ? await readFile(resolve(config.apiKeyFile), "utf8")
+      : (config.apiKey ?? "")
+  ).trim();
   if (!key || /[\r\n]/.test(key)) throw new Error("Invalid credential file");
   const url = new URL(
     config.url.replace(/\/$/, "") + `/api/${config.apiVersion}/calendar`,

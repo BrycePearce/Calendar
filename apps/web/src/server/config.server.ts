@@ -11,7 +11,8 @@ const source = z
         !u.hash
       );
     }),
-    apiKeyFile: z.string().min(1),
+    apiKeyFile: z.string().min(1).optional(),
+    apiKey: z.string().min(1).optional(),
     apiVersion: z.enum(["v3", "v5"]).default("v3"),
     allowIds: z.array(z.number().int().positive()).optional(),
     monitoredOnly: z.boolean().default(false),

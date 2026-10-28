@@ -9,17 +9,17 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { normalize } from "../apps/exporter/src/adapters";
+import { normalize } from "../apps/web/src/server/adapters.server";
 import {
   Exporter,
   atomicJson,
   fetchCalendar,
   prepareDirectories,
-} from "../apps/exporter/src/engine";
+} from "../apps/web/src/server/engine.server";
 import {
   privateConfigSchema,
   type PrivateConfig,
-} from "../apps/exporter/src/config";
+} from "../apps/web/src/server/config.server";
 import {
   snapshotSchema,
   searchSchema,
@@ -300,6 +300,22 @@ describe("independent durable publishing", () => {
         stateDir: join(config.publicDir, "private"),
       }),
     ).rejects.toThrow("separate");
+  });
+  it("a missing key file does not prevent the other source from refreshing", async () => {
+    config.sonarr = { ...source, apiKeyFile: join(dir, "missing-key") };
+    config.radarr = { ...source, apiKeyFile: undefined, apiKey: sentinel };
+    await prepareDirectories(config);
+    const s = await new Exporter(
+      config,
+      async (name, c, coverage) => {
+        if (name === "sonarr") return fetchCalendar(c, coverage, 100);
+        return [movie];
+      },
+      now,
+    ).refresh();
+    expect(s?.sources.sonarr.health).toBe("unavailable");
+    expect(s?.sources.radarr.health).toBe("healthy");
+    expect(s?.events).toHaveLength(3);
   });
   it("uses header authentication, no redirects, bounded retries and generic errors", async () => {
     const keyFile = join(dir, "key");

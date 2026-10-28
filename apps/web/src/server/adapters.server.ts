@@ -4,7 +4,7 @@ import {
   type CalendarEvent,
   type Coverage,
 } from "@calendar/schema";
-import type { SourceConfig } from "./config.js";
+import type { SourceConfig } from "./config.server";
 
 const id = z.number().int().positive();
 const name = z.string().trim().min(1).max(500);

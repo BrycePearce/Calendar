@@ -7,17 +7,18 @@
     "node": ">=24 <27"
   },
   "scripts": {
-    "dev": "pnpm --filter @calendar/web dev",
-    "dev:demo": "pnpm demo && pnpm dev",
-    "demo": "tsx scripts/demo.ts",
-    "build": "pnpm --filter @calendar/web build && pnpm --filter @calendar/exporter build",
+    "dev": "node scripts/run.mjs dev",
+    "dev:demo": "node scripts/run.mjs demo",
+    "build": "pnpm --filter @calendar/web build",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "scan": "node scripts/scan.mjs"
+    "scan": "node scripts/scan.mjs",
+    "start": "node --env-file-if-exists=.env apps/web/.output/server/index.mjs",
+    "test:production": "node scripts/production-smoke.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

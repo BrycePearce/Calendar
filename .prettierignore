@@ -1,5 +1,6 @@
 pnpm-lock.yaml
 dist
+.output
 node_modules
 apps/web/src/routeTree.gen.ts
 artifacts

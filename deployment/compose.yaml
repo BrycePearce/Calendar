@@ -1,42 +1,36 @@
 services:
-  exporter:
+  app:
     build:
       context: ..
-      dockerfile: deployment/exporter.Dockerfile
-    image: calendar-exporter:local
+      dockerfile: deployment/app.Dockerfile
+    image: calendar-app:local
     labels:
       net.unraid.docker.icon: "${CALENDAR_ICON_URL:-}"
     restart: unless-stopped
-    user: "${EXPORTER_UID:-1000}:${EXPORTER_GID:-1000}"
+    user: "${CALENDAR_UID:-1000}:${CALENDAR_GID:-1000}"
+    init: true
+    stop_grace_period: 210s
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     tmpfs: [/tmp]
-    volumes:
-      - ../private/exporter.json:/run/config/exporter.json:ro
-      - ../private/sonarr-key:/run/secrets/sonarr-key:ro
-      - ../private/radarr-key:/run/secrets/radarr-key:ro
-      - ../runtime/public:/srv/public
-      - ../runtime/private-state:/srv/private-state
-    networks: [exporter]
-  web:
-    build:
-      context: ..
-      dockerfile: deployment/web.Dockerfile
-    image: calendar-web:local
-    labels:
-      net.unraid.docker.icon: "${CALENDAR_ICON_URL:-}"
-    restart: unless-stopped
-    user: "${WEB_UID:-101}:${WEB_GID:-101}"
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    tmpfs: [/tmp]
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8080
+      CALENDAR_PUBLIC_DIR: /srv/public
+      CALENDAR_STATE_DIR: /srv/private-state
     ports: ["127.0.0.1:8080:8080"]
     volumes:
-      - ../runtime/public:/srv/public:ro
-      - ../private/public-config.json:/srv/site/config.json:ro
-    networks: [frontend]
+      - ../runtime/public:/srv/public
+      - ../runtime/private-state:/srv/private-state
+    networks:
+      frontend:
+        aliases:
+          - web
+          - "${COMPOSE_PROJECT_NAME:-edoncloud-calendar}-web-1"
 networks:
-  exporter: {}
   frontend: {}

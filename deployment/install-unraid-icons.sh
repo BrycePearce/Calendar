@@ -11,10 +11,10 @@ if [[ ! $icon_url =~ ^https://[a-zA-Z0-9./_%-]+\.png$ ]]; then
   echo 'Pass a public HTTPS URL ending in .png (no credentials or query string).' >&2; exit 1
 fi
 mkdir -p "$template_dir"
-# Prepare both files before installing either. Existing templates are never overwritten.
+# Existing templates are never overwritten.
 staging=$(mktemp -d)
 trap 'rm -f "$staging"/*.xml; rmdir "$staging"' EXIT
-for service in web exporter; do
+for service in app; do
   mapfile -t ids < <(docker ps -aq --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=$service")
   if [[ ${#ids[@]} -ne 1 ]]; then
     echo "Expected exactly one $service container for project $project." >&2; exit 1

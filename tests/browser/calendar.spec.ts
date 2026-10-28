@@ -4,9 +4,7 @@ const fixed = new Date("2026-10-15T12:00:00Z");
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: fixed });
 });
-test("static hosting headers, real JSON errors, and no runtime needed", async ({
-  request,
-}) => {
+test("production headers and real JSON errors", async ({ request }) => {
   const response = await request.get("/");
   expect(response.status()).toBe(200);
   expect(response.headers()["content-security-policy"]).toContain(
@@ -16,6 +14,15 @@ test("static hosting headers, real JSON errors, and no runtime needed", async ({
     "script-src 'self' 'unsafe-inline'",
   );
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+  const policy = response.headers()["content-security-policy"];
+  const nonce = policy.match(/'nonce-([^']+)'/)?.[1];
+  expect(nonce).toBeTruthy();
+  expect(await response.text()).toContain(`nonce="${nonce}"`);
+  const next = await request.get("/");
+  expect(next.headers()["content-security-policy"]).not.toBe(
+    response.headers()["content-security-policy"],
+  );
+  expect((await request.get("/healthz")).status()).toBe(200);
   const missing = await request.get("/data/does-not-exist.json");
   expect(missing.status()).toBe(404);
   expect(await missing.text()).not.toContain("Loading your calendar");

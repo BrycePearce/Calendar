@@ -6,6 +6,7 @@ export default ts.config(
   {
     ignores: [
       "**/dist/**",
+      "**/.output/**",
       "**/node_modules/**",
       "**/routeTree.gen.ts",
       "**/.tanstack/**",
