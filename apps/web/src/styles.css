@@ -4,6 +4,7 @@
   --font-sans: "Inter Variable", sans-serif;
 }
 :root {
+  scrollbar-gutter: stable;
   font-family: "Inter Variable", sans-serif;
   color: #e8ebf1;
   background: #0c0e12;
@@ -72,7 +73,7 @@ button:hover {
 .app-shell {
   max-width: 1840px;
   margin: auto;
-  padding: 0 4.5%;
+  padding: 24px 4.5% 0;
 }
 .site-header {
   height: 96px;
@@ -148,7 +149,7 @@ button:hover {
   background: #12151b;
   border: 1px solid var(--border);
   border-radius: 13px;
-  overflow: hidden;
+  overflow: clip;
   box-shadow: 0 20px 65px #0002;
 }
 .toolbar {
@@ -423,6 +424,8 @@ h2 > span {
 }
 .panel-footer {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   border-top: 1px solid var(--border);
@@ -491,6 +494,9 @@ h2 > span {
   margin: auto;
   color: #6c8397;
 }
+.load-error .button {
+  margin-top: 20px;
+}
 .empty h3 {
   color: #d1dae6;
   margin-bottom: 5px;
@@ -500,6 +506,178 @@ h2 > span {
 }
 .agenda {
   padding: 0 24px 20px;
+}
+.release-skeleton {
+  padding: 50px 24px 20px;
+  min-height: 600px;
+}
+.month-skeleton {
+  overflow: hidden;
+}
+.skeleton-weekdays,
+.skeleton-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.skeleton-weekdays {
+  background: #181c23;
+  border-top: 1px solid var(--border);
+}
+.skeleton-weekdays > div {
+  padding: 12px;
+}
+.skeleton-weekdays span {
+  display: block;
+  width: 30px;
+  height: 14px;
+}
+.skeleton-month-grid > div {
+  min-height: 135px;
+  padding: 14px 10px;
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.skeleton-month-grid span {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.skeleton-footer span {
+  display: block;
+  width: 220px;
+  height: 16px;
+}
+.skeleton-sources span {
+  display: block;
+  width: 250px;
+  height: 16px;
+}
+@media (min-width: 1450px) {
+  .skeleton-month-grid > div {
+    min-height: 153px;
+  }
+}
+@media (max-width: 700px) {
+  .skeleton-weekdays,
+  .skeleton-month-grid {
+    min-width: 680px;
+  }
+}
+.skeleton-block {
+  background: #202630;
+  border-radius: 7px;
+}
+.skeleton-filters {
+  width: 310px;
+  max-width: 100%;
+  height: 40px;
+}
+.skeleton-search {
+  width: 270px;
+  max-width: 100%;
+  height: 40px;
+}
+.skeleton-title {
+  width: 210px;
+  height: 32px;
+}
+.skeleton-switch {
+  width: 210px;
+  height: 40px;
+}
+.skeleton-legend {
+  width: 230px;
+  height: 18px;
+}
+.skeleton-day {
+  display: flex;
+  gap: 22px;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+}
+.skeleton-date {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.skeleton-items {
+  flex: 1;
+  display: grid;
+  gap: 7px;
+}
+.skeleton-label {
+  width: 100px;
+  height: 20px;
+  margin-bottom: 5px;
+}
+.skeleton-card {
+  height: 80px;
+  border: 1px solid #2a323d;
+  background: #181e27;
+}
+@media (max-width: 700px) {
+  .skeleton-search {
+    width: 100%;
+  }
+  .skeleton-switch {
+    align-self: flex-end;
+  }
+  .release-skeleton {
+    padding: 76px 13px 8px;
+  }
+  .skeleton-day {
+    gap: 11px;
+    padding: 17px 0;
+  }
+  .skeleton-card {
+    height: 112px;
+  }
+}
+.feed-navigation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.feed-navigation > span {
+  margin-left: auto;
+}
+.agenda-group-heading {
+  margin: 0 0 5px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #d1dae6;
+}
+.agenda-date > .agenda-month {
+  display: block;
+  font-size: 10px;
+}
+.day-empty {
+  margin: 0;
+  padding: 10px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.feed-more {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.feed-more p {
+  margin: 0;
+}
+.footer-request {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #cdd4df;
 }
 .agenda-day {
   display: flex;
@@ -698,7 +876,7 @@ h2 > span {
 }
 @media (max-width: 950px) {
   .app-shell {
-    padding: 0 3%;
+    padding: 20px 3% 0;
   }
   .timezone {
     display: flex;
@@ -735,7 +913,7 @@ h2 > span {
 }
 @media (max-width: 700px) {
   .app-shell {
-    padding: 0 16px;
+    padding: 16px 16px 0;
   }
   .site-header {
     height: 78px;
@@ -799,6 +977,7 @@ h2 > span {
   .navigation {
     width: 100%;
     gap: 6px;
+    flex-wrap: wrap;
   }
   .view-switch {
     margin-left: auto;
@@ -933,6 +1112,52 @@ h2 > span {
   font-weight: 650;
   letter-spacing: -0.6px;
 }
+/* The overview shares one viewport-sized frame with its loading state.
+   Short windows and touch layouts retain the naturally scrolling calendar. */
+@media (min-width: 951px) and (min-height: 700px) {
+  .month-shell .calendar-panel {
+    height: calc(100dvh - 100px);
+    display: flex;
+    flex-direction: column;
+  }
+  .month-shell .calendar-panel > :not(.month-grid):not(.month-skeleton) {
+    flex-shrink: 0;
+  }
+  .month-shell .month-grid,
+  .month-shell .month-skeleton {
+    flex: 1;
+    min-height: 0;
+  }
+  .month-shell .month-skeleton {
+    display: flex;
+    flex-direction: column;
+  }
+  .month-shell .skeleton-month-grid {
+    flex: 1;
+    min-height: 0;
+    grid-auto-rows: 1fr;
+  }
+  .month-shell .skeleton-month-grid > div,
+  .month-shell .fc .fc-daygrid-day-frame {
+    min-height: 0;
+  }
+  .month-shell .fc .fc-daygrid-day-top {
+    min-height: 38px;
+    padding: 4px 8px;
+  }
+  .month-shell .fc .fc-daygrid-body .fc-daygrid-event {
+    padding: 3px 6px;
+    margin: 2px 4px;
+  }
+  .month-shell .fc-daygrid-body .event-meta,
+  .month-shell .fc-daygrid-body .episode-title {
+    display: none;
+  }
+  .month-shell .source-status {
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+}
 .calendar-meta {
   display: flex;
   justify-content: flex-end;
@@ -947,6 +1172,11 @@ h2 > span {
 .fc-daygrid-day,
 .agenda-day {
   scroll-margin-top: 20px;
+}
+@media (min-width: 701px) {
+  .fc-daygrid-day {
+    scroll-margin-top: 64px;
+  }
 }
 .agenda-date strong.today-number {
   display: grid;

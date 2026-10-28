@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-start";
 import { routeTree } from "./routeTree.gen";
 import { stringifyCalendarSearch } from "./search";
+import { CalendarSkeleton } from "./loading";
 const getNonce = createIsomorphicFn()
   .server(
     () => (getGlobalStartContext() as { nonce?: string } | undefined)?.nonce,
@@ -20,9 +21,7 @@ export function getRouter() {
     stringifySearch: stringifyCalendarSearch,
     ssr: { nonce: getNonce() },
     scrollRestoration: true,
-    defaultPendingComponent: () => (
-      <p className="loading">Loading your calendar…</p>
-    ),
+    defaultPendingComponent: CalendarSkeleton,
   });
 }
 declare module "@tanstack/react-router" {

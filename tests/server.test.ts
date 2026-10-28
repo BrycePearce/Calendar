@@ -117,10 +117,34 @@ describe("runtime configuration and API boundary", () => {
       expect(data.sources.sonarr.health).toBe("unavailable");
       expect(JSON.stringify(data)).not.toContain(dir);
       expect((await apiResponse("/data/nope.json"))?.status).toBe(404);
-      expect(response?.headers.get("cache-control")).toContain("no-store");
+      expect(response?.headers.get("cache-control")).toBe(
+        "private, max-age=60, stale-while-revalidate=300",
+      );
+      const etag = response?.headers.get("etag");
+      expect(etag).toBeTruthy();
+      const unchanged = await apiResponse("/data/calendar.json", etag);
+      expect(unchanged?.status).toBe(304);
+      expect(await unchanged?.text()).toBe("");
+      expect(
+        (await apiResponse("/data/calendar.json", '"outdated"'))?.status,
+      ).toBe(200);
     } finally {
       await stopPolling();
       await rm(dir, { recursive: true, force: true });
     }
+  });
+  it("changes the validator when a fresh snapshot is published", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("CALENDAR_DEMO", "true");
+    await startRuntime();
+    const first = await apiResponse("/data/calendar.json");
+    const etag = first!.headers.get("etag");
+    const configTag = (await apiResponse("/config.json"))!.headers.get("etag");
+    await vi.advanceTimersByTimeAsync(900000);
+    const refreshed = await apiResponse("/data/calendar.json", etag);
+    expect(refreshed?.status).toBe(200);
+    expect(refreshed?.headers.get("etag")).not.toBe(etag);
+    expect((await apiResponse("/config.json", configTag))?.status).toBe(304);
+    expect((await apiResponse("/data/calendar.json", "*"))?.status).toBe(304);
   });
 });

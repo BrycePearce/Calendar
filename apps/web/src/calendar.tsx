@@ -1,15 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { labels, timeLabel } from "./event-format";
+import { CalendarSkeleton, ReleaseSkeleton } from "./loading";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
-import FullCalendar from "@fullcalendar/react";
-import calendarIcon from "../../../assets/calendar.svg?url";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import { addMonths, format, parseISO, endOfMonth } from "date-fns";
+import { addDays, addMonths, format, parseISO, endOfMonth } from "date-fns";
 import {
   ArrowUpRight,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   Film,
   List,
   Search as SearchIcon,
@@ -35,59 +41,62 @@ import {
 import { dayOf, episodeLabel } from "./lib";
 import { stringifyCalendarSearch } from "./search";
 
+const loadMonthCalendar = () => import("./month-calendar");
+const MonthCalendar = lazy(loadMonthCalendar);
+
 async function json(path: string) {
   const response = await fetch(path, {
-    cache: "no-cache",
+    cache: "default",
     credentials: "omit",
   });
   if (!response.ok) throw new Error("Calendar unavailable");
   return response.json() as Promise<unknown>;
 }
-const labels = {
-  air: "TV episode",
-  theatrical: "Theatrical",
-  digital: "Digital",
-  physical: "Physical",
-};
-function timeLabel(e: CalendarEvent, config: PublicConfig) {
-  return e.media === "tv"
-    ? new Intl.DateTimeFormat(undefined, {
-        hour: "numeric",
-        minute: "2-digit",
-        ...(config.timezone === "UTC" ? { timeZone: "UTC" } : {}),
-      }).format(new Date(e.at))
-    : "Date only";
+function useCalendarQuery() {
+  return useQuery({
+    queryKey: ["calendar"],
+    queryFn: async () =>
+      snapshotSchema.parse(await json("/data/calendar.json")),
+  });
 }
 export function CalendarApp() {
+  const search = Route.useSearch();
+  useEffect(() => {
+    if (search.view === "month") void loadMonthCalendar().catch(() => {});
+  }, [search.view]);
   const configQuery = useQuery({
     queryKey: ["config"],
     queryFn: async () => publicConfigSchema.parse(await json("/config.json")),
   });
-  if (configQuery.isPending)
-    return (
-      <main className="loading" role="status">
-        Loading your calendar…
-      </main>
-    );
+  const query = useCalendarQuery();
+  if (configQuery.isPending) return <CalendarSkeleton />;
   if (!configQuery.data)
     return (
-      <main className="loading">
+      <main className="loading load-error">
         <h1>Calendar unavailable</h1>
         <p>Public configuration could not be loaded.</p>
         <Button onClick={() => void configQuery.refetch()}>Try again</Button>
       </main>
     );
-  return <CalendarContent config={configQuery.data} />;
+  if (query.isPending) return <CalendarSkeleton />;
+  return (
+    <Suspense fallback={<CalendarSkeleton />}>
+      <CalendarContent config={configQuery.data} query={query} />
+    </Suspense>
+  );
 }
-function CalendarContent({ config }: { config: PublicConfig }) {
+function CalendarContent({
+  config,
+  query,
+}: {
+  config: PublicConfig;
+  query: ReturnType<typeof useCalendarQuery>;
+}) {
   const search = Route.useSearch(),
     navigate = Route.useNavigate();
-  const [initialView] = useState<"agenda" | "month">(() =>
-    typeof window !== "undefined" &&
-    window.matchMedia("(max-width: 700px)").matches
-      ? "agenda"
-      : "month",
-  );
+  const initialView = "agenda";
+  const [futureDays, setFutureDays] = useState(30);
+  const [pastDays, setPastDays] = useState(0);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
   const [clock, setClock] = useState(() => Date.now());
   useEffect(() => {
@@ -95,20 +104,19 @@ function CalendarContent({ config }: { config: PublicConfig }) {
     return () => clearInterval(timer);
   }, []);
   const focusReturn = useRef<HTMLElement | null>(null);
-  const calendar = useRef<FullCalendar>(null);
+  const [monthReady, setMonthReady] = useState(false);
+  const onMonthReady = useCallback(() => setMonthReady(true), []);
   const content = useRef<HTMLDivElement>(null);
   const [todayScrollRequest, setTodayScrollRequest] = useState(0);
-  const handledScrollRequest = useRef(-1);
-  const todayDate = format(new Date(), "yyyy-MM-dd");
-  const today = format(new Date(), "yyyy-MM"),
+  const handledScrollRequest = useRef(0);
+  const todayDate =
+    config.timezone === "UTC"
+      ? new Date(clock).toISOString().slice(0, 10)
+      : format(new Date(clock), "yyyy-MM-dd");
+  const today = todayDate.slice(0, 7),
     month = search.month ?? today,
     view = search.view ?? initialView;
   const monthDate = parseISO(month + "-01");
-  const query = useQuery({
-    queryKey: ["calendar"],
-    queryFn: async () =>
-      snapshotSchema.parse(await json("/data/calendar.json")),
-  });
   const update = (patch: Partial<Search>, replace = false) =>
     void navigate({
       search: (prev) => {
@@ -135,11 +143,19 @@ function CalendarContent({ config }: { config: PublicConfig }) {
   useEffect(() => {
     document.title = config.title;
   }, [config.title]);
-  useEffect(() => {
-    calendar.current?.getApi().gotoDate(month + "-01");
-  }, [month, view]);
+
   const data = query.data;
+  const rangeStart = format(
+    addDays(parseISO(todayDate), -pastDays),
+    "yyyy-MM-dd",
+  );
+  const rangeEnd = format(
+    addDays(parseISO(todayDate), futureDays - 1),
+    "yyyy-MM-dd",
+  );
+  const tomorrow = format(addDays(parseISO(todayDate), 1), "yyyy-MM-dd");
   useEffect(() => {
+    if (view !== "month" || !monthReady) return;
     if (!data || handledScrollRequest.current === todayScrollRequest) return;
     // Leave explicit month links and restored scroll positions alone on load.
     if (month !== today) {
@@ -166,8 +182,9 @@ function CalendarContent({ config }: { config: PublicConfig }) {
       const bounds = target.getBoundingClientRect();
       // Show the date and the start of its releases, even for a very tall day.
       const visibleHeight = Math.min(bounds.height, 160);
+      const topInset = view === "month" && window.innerWidth > 700 ? 64 : 16;
       if (
-        bounds.top < 16 ||
+        bounds.top < topInset ||
         bounds.top + visibleHeight > window.innerHeight - 16
       ) {
         target.scrollIntoView({
@@ -178,26 +195,52 @@ function CalendarContent({ config }: { config: PublicConfig }) {
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [data, month, today, todayDate, todayScrollRequest, view]);
-  const events = (data?.events ?? []).filter(
-    (e) =>
-      (search.media === "all" || e.media === search.media) &&
-      (e.media === "tv" || search.releases.includes(e.releaseType)) &&
-      `${e.title} ${e.media === "tv" ? (e.episodeTitle ?? "") : ""}`
-        .toLowerCase()
-        .includes(search.q.toLowerCase()),
+  }, [data, month, today, todayDate, todayScrollRequest, view, monthReady]);
+  const dates = useMemo(
+    () =>
+      new Map(
+        (data?.events ?? []).map((event) => [
+          event.id,
+          dayOf(event, config.timezone),
+        ]),
+      ),
+    [data, config.timezone],
   );
-  const visible = events
-    .filter((e) => dayOf(e, config.timezone).startsWith(month))
-    .sort(
-      (a, b) =>
-        dayOf(a, config.timezone).localeCompare(dayOf(b, config.timezone)) ||
-        (a.media === "tv" ? a.at : a.date).localeCompare(
-          b.media === "tv" ? b.at : b.date,
-        ) ||
-        a.title.localeCompare(b.title),
+  const events = useMemo(() => {
+    const text = search.q.toLowerCase();
+    return (data?.events ?? []).filter(
+      (e) =>
+        (search.media === "all" || e.media === search.media) &&
+        (e.media === "tv" || search.releases.includes(e.releaseType)) &&
+        `${e.title} ${e.media === "tv" ? (e.episodeTitle ?? "") : ""}`
+          .toLowerCase()
+          .includes(text),
     );
-  const groups = Map.groupBy(visible, (e) => dayOf(e, config.timezone));
+  }, [data, search.media, search.releases, search.q]);
+  const visible = useMemo(
+    () =>
+      events
+        .filter((e) => {
+          const day = dates.get(e.id)!;
+          return view === "month"
+            ? day.startsWith(month)
+            : day >= rangeStart && day <= rangeEnd;
+        })
+        .sort(
+          (a, b) =>
+            dates.get(a.id)!.localeCompare(dates.get(b.id)!) ||
+            (a.media === "tv" ? a.at : a.date).localeCompare(
+              b.media === "tv" ? b.at : b.date,
+            ) ||
+            a.title.localeCompare(b.title),
+        ),
+    [events, dates, view, month, rangeStart, rangeEnd],
+  );
+  const groups = Map.groupBy(visible, (e) => dates.get(e.id)!);
+  if (view === "agenda" && !groups.has(todayDate)) groups.set(todayDate, []);
+  const orderedGroups = [...groups].sort(([a], [b]) => a.localeCompare(b));
+  const canShowEarlier = !!data && rangeStart > data.coverage.start;
+  const canShowMore = !!data && rangeEnd < data.coverage.end;
   const timezone =
     config.timezone === "UTC"
       ? "UTC"
@@ -209,6 +252,7 @@ function CalendarContent({ config }: { config: PublicConfig }) {
         ? (["radarr"] as const)
         : (["sonarr", "radarr"] as const);
   const outside =
+    view === "month" &&
     data &&
     relevantSources.some((source) => {
       const c = data.sources[source].coverage;
@@ -226,45 +270,15 @@ function CalendarContent({ config }: { config: PublicConfig }) {
     setSelected(e);
   }
   return (
-    <div className="app-shell" ref={content}>
+    <div
+      className={`app-shell${view === "month" ? " month-shell" : ""}`}
+      ref={content}
+    >
       <a className="skip-link" href="#calendar">
         Skip to calendar
       </a>
-      <header className="site-header">
-        <a href="/" className="brand">
-          <img
-            className="brand-mark"
-            src={calendarIcon}
-            alt=""
-            width={44}
-            height={44}
-          />
-          <h1>{config.title}</h1>
-        </a>
-        <div className="header-end">
-          {config.requestUrl && (
-            <Button asChild variant="outline">
-              <a
-                href={config.requestUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {config.requestLabel}
-                <ArrowUpRight size={15} />
-              </a>
-            </Button>
-          )}
-        </div>
-      </header>
       <main>
-        <div className="calendar-meta">
-          <div className="timezone">
-            <Clock3 size={15} />
-            <span>
-              Timezone <strong>{timezone.replaceAll("_", " ")}</strong>
-            </span>
-          </div>
-        </div>
+        <h1 className="sr-only">{config.title}</h1>
         <section
           className="calendar-panel"
           id="calendar"
@@ -310,49 +324,73 @@ function CalendarContent({ config }: { config: PublicConfig }) {
           </div>
           <div className="calendar-heading">
             <div className="month-title">
-              <h2>
-                {format(monthDate, "MMMM")}{" "}
-                <span>{format(monthDate, "yyyy")}</span>
+              <h2 aria-live="polite" aria-atomic="true">
+                {view === "month" ? (
+                  <>
+                    {format(monthDate, "MMMM")}{" "}
+                    <span>{format(monthDate, "yyyy")}</span>
+                  </>
+                ) : (
+                  "Upcoming"
+                )}
               </h2>
               <span className="event-count">{visible.length} releases</span>
             </div>
             <div className="navigation">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  update({ month: today });
-                  setTodayScrollRequest((request) => request + 1);
-                }}
-              >
-                Today
-              </Button>
-              <div className="arrows">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Previous month"
-                  onClick={() =>
-                    update({
-                      month: format(addMonths(monthDate, -1), "yyyy-MM"),
-                    })
-                  }
-                >
-                  <ChevronLeft size={19} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Next month"
-                  onClick={() =>
-                    update({
-                      month: format(addMonths(monthDate, 1), "yyyy-MM"),
-                    })
-                  }
-                >
-                  <ChevronRight size={19} />
-                </Button>
-              </div>
+              {view === "month" && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      update({ month: today });
+                      setTodayScrollRequest((request) => request + 1);
+                    }}
+                  >
+                    Today
+                  </Button>
+                  <div className="arrows">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Previous month"
+                      title={format(addMonths(monthDate, -1), "MMMM yyyy")}
+                      onClick={() =>
+                        update({
+                          month: format(addMonths(monthDate, -1), "yyyy-MM"),
+                        })
+                      }
+                    >
+                      <ChevronLeft size={19} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Next month"
+                      title={format(addMonths(monthDate, 1), "MMMM yyyy")}
+                      onClick={() =>
+                        update({
+                          month: format(addMonths(monthDate, 1), "yyyy-MM"),
+                        })
+                      }
+                    >
+                      <ChevronRight size={19} />
+                    </Button>
+                  </div>
+                </>
+              )}
               <div className="segmented view-switch" aria-label="Calendar view">
+                <Button
+                  variant="ghost"
+                  aria-pressed={view === "agenda"}
+                  onClick={() => {
+                    update({ view: "agenda", month: undefined });
+                    setPastDays(0);
+                    setFutureDays(30);
+                  }}
+                >
+                  <List size={15} />
+                  Upcoming
+                </Button>
                 <Button
                   variant="ghost"
                   aria-pressed={view === "month"}
@@ -360,14 +398,6 @@ function CalendarContent({ config }: { config: PublicConfig }) {
                 >
                   <CalendarDays size={15} />
                   Month
-                </Button>
-                <Button
-                  variant="ghost"
-                  aria-pressed={view === "agenda"}
-                  onClick={() => update({ view: "agenda" })}
-                >
-                  <List size={15} />
-                  Agenda
                 </Button>
               </div>
             </div>
@@ -423,85 +453,41 @@ function CalendarContent({ config }: { config: PublicConfig }) {
             </div>
           )}
           {query.isPending ? (
-            <div className="loading" role="status">
-              Loading releases…
-            </div>
+            <ReleaseSkeleton />
           ) : (
             data && (
               <>
                 {view === "month" ? (
                   <div className="month-grid">
-                    <FullCalendar
-                      ref={calendar}
-                      plugins={[dayGridPlugin]}
-                      initialView="dayGridMonth"
-                      initialDate={month + "-01"}
-                      headerToolbar={false}
-                      height="auto"
-                      fixedWeekCount={false}
-                      dayMaxEvents={3}
-                      moreLinkClick="popover"
-                      eventInteractive={true}
-                      editable={false}
-                      selectable={false}
-                      timeZone={config.timezone}
-                      dayCellContent={(info) => (
-                        <>
-                          <span
-                            className={
-                              info.isToday ? "today-number" : undefined
-                            }
-                            aria-current={info.isToday ? "date" : undefined}
-                          >
-                            {info.dayNumberText}
-                          </span>
-                          {info.isToday && (
-                            <span className="today-label">Today</span>
-                          )}
-                        </>
-                      )}
-                      events={events.map((e) => ({
-                        id: e.id,
-                        title: e.title,
-                        start: e.media === "tv" ? e.at : e.date,
-                        allDay: e.media === "movie",
-                        classNames: [e.media],
-                        extendedProps: { record: e },
-                      }))}
-                      eventClick={(info) =>
-                        openEvent(
-                          info.event.extendedProps.record as CalendarEvent,
-                        )
-                      }
-                      eventContent={(info) => {
-                        const e = info.event.extendedProps
-                          .record as CalendarEvent;
-                        return (
-                          <div className="event-content">
-                            <span className="event-meta">
-                              {e.media === "tv" ? (
-                                <Tv size={10} />
-                              ) : (
-                                <Film size={10} />
-                              )}{" "}
-                              {e.media === "tv"
-                                ? `${timeLabel(e, config)} · ${episodeLabel(e)}`
-                                : labels[e.releaseType]}
-                            </span>
-                            <strong>{e.title}</strong>
-                            {e.media === "tv" && e.episodeTitle && (
-                              <span className="episode-title">
-                                {e.episodeTitle}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      }}
+                    <MonthCalendar
+                      month={month}
+                      events={events}
+                      config={config}
+                      openEvent={openEvent}
+                      onReady={onMonthReady}
                     />
                   </div>
                 ) : (
                   <div className="agenda">
-                    {[...groups].map(([day, list]) => (
+                    <div className="feed-navigation">
+                      <Button
+                        variant="ghost"
+                        disabled={!canShowEarlier}
+                        onClick={() => setPastDays((days) => days + 30)}
+                      >
+                        View earlier releases
+                      </Button>
+                      {pastDays > 0 && (
+                        <Button variant="ghost" onClick={() => setPastDays(0)}>
+                          Back to upcoming
+                        </Button>
+                      )}
+                      <span>
+                        {format(parseISO(rangeStart), "MMM d, yyyy")} –{" "}
+                        {format(parseISO(rangeEnd), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                    {orderedGroups.map(([day, list]) => (
                       <section className="agenda-day" key={day} data-day={day}>
                         <div className="agenda-date">
                           <strong
@@ -515,11 +501,30 @@ function CalendarContent({ config }: { config: PublicConfig }) {
                             {format(parseISO(day), "dd")}
                           </strong>
                           <span>{format(parseISO(day), "EEE")}</span>
+                          <span className="agenda-month">
+                            {format(parseISO(day), "MMM")}
+                          </span>
                           {day === todayDate && (
                             <span className="today-label">Today</span>
                           )}
                         </div>
                         <div className="agenda-items">
+                          <h3 className="agenda-group-heading">
+                            {day === todayDate
+                              ? "Today"
+                              : day === tomorrow
+                                ? "Tomorrow"
+                                : format(parseISO(day), "EEEE, MMMM d, yyyy")}
+                          </h3>
+                          {list.length === 0 && (
+                            <p className="day-empty">
+                              {search.q ||
+                              search.media !== "all" ||
+                              search.releases.length !== 3
+                                ? "No matching releases today."
+                                : "No releases today."}
+                            </p>
+                          )}
                           {list.map((e) => (
                             <button
                               key={e.id}
@@ -553,9 +558,27 @@ function CalendarContent({ config }: { config: PublicConfig }) {
                         </div>
                       </section>
                     ))}
+                    <div className="feed-more">
+                      {canShowMore ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => setFutureDays((days) => days + 30)}
+                        >
+                          Show more
+                        </Button>
+                      ) : (
+                        <p>
+                          You're caught up with the available release schedule.
+                        </p>
+                      )}
+                      <small>
+                        Dates available through{" "}
+                        {format(parseISO(data.coverage.end), "MMMM d, yyyy")}
+                      </small>
+                    </div>
                   </div>
                 )}
-                {visible.length === 0 && (
+                {visible.length === 0 && view === "month" && (
                   <div className="empty">
                     <CalendarDays size={30} />
                     <h3>No releases to show</h3>
@@ -570,12 +593,24 @@ function CalendarContent({ config }: { config: PublicConfig }) {
             )
           )}
           <footer className="panel-footer">
+            <span>Timezone: {timezone.replaceAll("_", " ")}</span>
             <span>Air & release dates · Not library availability</span>
             <span>
               {data
                 ? `Export window: ${data.coverage.start} — ${data.coverage.end}`
                 : "Waiting for a valid export"}
             </span>
+            {config.requestUrl && (
+              <a
+                className="footer-request"
+                href={config.requestUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {config.requestLabel}
+                <ArrowUpRight size={14} />
+              </a>
+            )}
           </footer>
         </section>
         <section className="source-status" aria-label="Source refresh status">

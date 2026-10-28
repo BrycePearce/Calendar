@@ -14,7 +14,7 @@ export default createServerEntry({
       );
     else
       response =
-        (await apiResponse(path)) ??
+        (await apiResponse(path, request.headers.get("if-none-match"))) ??
         (await handler.fetch(request, {
           ...options,
           context: { ...options?.context, nonce },
@@ -24,7 +24,8 @@ export default createServerEntry({
       "Content-Security-Policy",
       `default-src 'none'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; object-src 'none'`,
     );
-    headers.set("Cache-Control", "no-cache, no-store");
+    if (!headers.has("Cache-Control"))
+      headers.set("Cache-Control", "no-cache, no-store");
     return new Response(request.method === "HEAD" ? null : response.body, {
       status: response.status,
       headers,
