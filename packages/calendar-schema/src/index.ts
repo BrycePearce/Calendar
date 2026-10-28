@@ -110,11 +110,19 @@ export const searchSchema = z.object({
     .catch(undefined),
   view: z.enum(["month", "agenda"]).optional().catch(undefined),
   media: z.enum(["all", "tv", "movie"]).default("all").catch("all"),
-  releases: z
-    .array(z.enum(releaseTypes))
-    .max(3)
-    .default([...releaseTypes])
-    .catch([...releaseTypes]),
+  releases: z.preprocess(
+    (value) =>
+      typeof value === "string"
+        ? value === ""
+          ? []
+          : value.split(",")
+        : value,
+    z
+      .array(z.enum(releaseTypes))
+      .max(3)
+      .default([...releaseTypes])
+      .catch([...releaseTypes]),
+  ),
   q: z.string().max(100).default("").catch(""),
 });
 export type CalendarEvent = z.infer<typeof eventSchema>;

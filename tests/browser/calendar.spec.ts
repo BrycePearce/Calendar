@@ -85,11 +85,34 @@ test("default responsive view, filters, details, navigation and same-origin netw
     page.getByText("This month extends beyond", { exact: false }),
   ).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/2026-10/);
+  await expect(
+    page.getByRole("heading", { name: "October 2026" }),
+  ).toBeVisible();
+  expect(new URL(page.url()).searchParams.has("month")).toBe(false);
   expect(errors).toEqual([]);
   expect(
     requests.every((url) => new URL(url).origin === new URL(page.url()).origin),
   ).toBe(true);
+});
+
+test("clean default URLs and readable filter links", async ({ page }, info) => {
+  await page.route("**/data/calendar.json", (route) =>
+    route.fulfill({ json: demoSnapshot(fixed) }),
+  );
+  const defaultView = info.project.name === "mobile" ? "agenda" : "month";
+  await page.goto(
+    `/?media=all&releases=%5B%22theatrical%22%2C%22physical%22%2C%22digital%22%5D&q=&view=${defaultView}&month=2026-10`,
+  );
+  await expect(page).toHaveURL("/");
+  await page.getByRole("button", { name: "Movies", exact: true }).click();
+  await expect(page).toHaveURL("/?media=movie");
+  await page.getByLabel("Digital", { exact: true }).uncheck();
+  await expect(page).toHaveURL("/?media=movie&releases=theatrical,physical");
+  await page.reload();
+  await expect(page.getByLabel("Digital", { exact: true })).not.toBeChecked();
+  await page.getByLabel("Digital", { exact: true }).check();
+  await page.getByRole("button", { name: "All releases", exact: true }).click();
+  await expect(page).toHaveURL("/");
 });
 test("crowded days, inert malicious text, release filters and keyboard", async ({
   page,

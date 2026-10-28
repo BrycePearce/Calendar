@@ -4,6 +4,7 @@ import {
   getGlobalStartContext,
 } from "@tanstack/react-start";
 import { routeTree } from "./routeTree.gen";
+import { stringifyCalendarSearch } from "./search";
 const getNonce = createIsomorphicFn()
   .server(
     () => (getGlobalStartContext() as { nonce?: string } | undefined)?.nonce,
@@ -16,6 +17,7 @@ const getNonce = createIsomorphicFn()
 export function getRouter() {
   return createRouter({
     routeTree,
+    stringifySearch: stringifyCalendarSearch,
     ssr: { nonce: getNonce() },
     scrollRestoration: true,
     defaultPendingComponent: () => (

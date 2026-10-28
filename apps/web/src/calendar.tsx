@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from "./components/ui/dialog";
 import { dayOf, episodeLabel } from "./lib";
+import { stringifyCalendarSearch } from "./search";
 
 async function json(path: string) {
   const response = await fetch(path, {
@@ -105,7 +106,28 @@ function CalendarContent({ config }: { config: PublicConfig }) {
       snapshotSchema.parse(await json("/data/calendar.json")),
   });
   const update = (patch: Partial<Search>, replace = false) =>
-    void navigate({ search: (prev) => ({ ...prev, ...patch }), replace });
+    void navigate({
+      search: (prev) => {
+        const next = { ...prev, ...patch };
+        return {
+          ...next,
+          month: next.month === today ? undefined : next.month,
+          view: next.view === initialView ? undefined : next.view,
+        };
+      },
+      replace,
+      resetScroll: false,
+    });
+  useEffect(() => {
+    const normalized = {
+      ...search,
+      month: search.month === today ? undefined : search.month,
+      view: search.view === initialView ? undefined : search.view,
+    };
+    if (window.location.search !== stringifyCalendarSearch(normalized)) {
+      void navigate({ search: normalized, replace: true, resetScroll: false });
+    }
+  }, [search, today, initialView, navigate]);
   useEffect(() => {
     document.title = config.title;
   }, [config.title]);
