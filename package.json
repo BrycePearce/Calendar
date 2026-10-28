@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @calendar/web dev",
+    "dev:demo": "pnpm demo && pnpm dev",
     "demo": "tsx scripts/demo.ts",
     "build": "pnpm --filter @calendar/web build && pnpm --filter @calendar/exporter build",
     "lint": "eslint .",
