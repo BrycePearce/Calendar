@@ -305,11 +305,24 @@ test("compact header and prominent current day", async ({ page }, info) => {
   await expect(page.locator(".intro")).toHaveCount(0);
   const today = page.locator(".fc-day-today");
   await expect(today.locator(".today-label")).toHaveText("Today");
-  await expect(today).toHaveCSS("background-image", /linear-gradient/);
+  await expect(today).toHaveCSS("background-image", "none");
   await expect(today.locator(".fc-daygrid-day-frame")).toHaveCSS(
     "box-shadow",
-    /inset/,
+    "none",
   );
+  await expect(today.locator(".today-number")).toHaveCSS(
+    "border-radius",
+    "50%",
+  );
+  await expect(today.locator(".today-number")).toHaveAttribute(
+    "aria-current",
+    "date",
+  );
+  const cell = await today.boundingBox();
+  const marker = await today.locator(".today-number").boundingBox();
+  expect(marker!.x).toBeGreaterThanOrEqual(cell!.x);
+  expect(marker!.x + marker!.width).toBeLessThanOrEqual(cell!.x + cell!.width);
+  await today.screenshot({ path: `artifacts/${info.project.name}-today.png` });
   if (info.project.name === "desktop") {
     await page.setViewportSize({ width: 2560, height: 1440 });
     await expect(page.locator(".event-content strong").first()).toHaveCSS(
@@ -317,4 +330,56 @@ test("compact header and prominent current day", async ({ page }, info) => {
       "15px",
     );
   }
+});
+
+test("today scrolls into view once and the Today button brings it back", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 600 });
+  await page.route("**/data/calendar.json", (route) =>
+    route.fulfill({ json: demoSnapshot(fixed) }),
+  );
+  await page.goto("/?view=month");
+  const marker = page.locator(".fc-day-today .today-number");
+  await expect(marker).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.getByRole("textbox", { name: "Search titles" }).fill("Fictional");
+  await expect(
+    page.getByRole("textbox", { name: "Search titles" }),
+  ).toHaveValue("Fictional");
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(marker).toBeInViewport();
+  await page.getByRole("button", { name: "Next month" }).click();
+  await expect(
+    page.getByRole("heading", { name: "November 2026" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(marker).toBeInViewport();
+});
+
+test("agenda marks today and scrolls only when needed", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
+  const data = demoSnapshot(fixed);
+  data.events = Array.from({ length: 15 }, (_, index) => ({
+    id: `radarr:${index}:digital`,
+    media: "movie" as const,
+    title: `Release ${index}`,
+    releaseType: "digital" as const,
+    date: `2026-10-${String(index + 1).padStart(2, "0")}`,
+  }));
+  await page.route("**/data/calendar.json", (route) =>
+    route.fulfill({ json: data }),
+  );
+  await page.goto("/?view=agenda");
+  await expect(
+    page.locator('.agenda-date [aria-current="date"]'),
+  ).toBeInViewport();
+  await page.screenshot({ path: "artifacts/agenda-today.png" });
+  await page.goto("/?month=2026-11&view=agenda");
+  await expect(
+    page.getByRole("heading", { name: "November 2026" }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });

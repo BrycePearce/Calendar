@@ -16,7 +16,7 @@
   --fc-border-color: #272b33;
   --fc-page-bg-color: #15181f;
   --fc-neutral-bg-color: #1b1f27;
-  --fc-today-bg-color: #17262d;
+  --fc-today-bg-color: #191c23;
   --fc-event-border-color: transparent;
 }
 * {
@@ -319,6 +319,8 @@ h2 > span {
 }
 .fc .fc-daygrid-day-top {
   flex-direction: row;
+  align-items: center;
+  min-height: 48px;
   padding: 9px 10px 5px;
 }
 .fc .fc-daygrid-day-number {
@@ -326,14 +328,23 @@ h2 > span {
   color: #a4afbe;
 }
 .fc .fc-day-today .fc-daygrid-day-number {
-  background: #84e5f5;
-  color: #09232d;
-  border-radius: 7px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 9px;
-  font-weight: 750;
+  gap: 8px;
+  padding: 0;
+}
+.today-number {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e8ebf1;
+  color: #171a21;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
 }
 .fc .fc-daygrid-day-frame {
   min-height: 135px;
@@ -927,15 +938,29 @@ h2 > span {
   justify-content: flex-end;
   padding: 22px 2px 14px;
 }
-.fc .fc-daygrid-day.fc-day-today {
-  background: linear-gradient(155deg, #254c5b 0%, #19323f 50%, #15242f 100%);
-}
-.fc .fc-day-today .fc-daygrid-day-frame {
-  box-shadow: inset 0 0 0 2px #71dcf2;
-}
 .today-label {
   font-size: 11px;
+  font-weight: 600;
+  color: #c3c9d3;
   letter-spacing: 0.2px;
+}
+.fc-daygrid-day,
+.agenda-day {
+  scroll-margin-top: 20px;
+}
+.agenda-date strong.today-number {
+  display: grid;
+  font-size: 14px;
+  color: #171a21;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.agenda-date > .today-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #c3c9d3;
 }
 @media (min-width: 1450px) {
   .event-content strong {

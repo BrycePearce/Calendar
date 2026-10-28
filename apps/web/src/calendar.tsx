@@ -96,6 +96,10 @@ function CalendarContent({ config }: { config: PublicConfig }) {
   }, []);
   const focusReturn = useRef<HTMLElement | null>(null);
   const calendar = useRef<FullCalendar>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const [todayScrollRequest, setTodayScrollRequest] = useState(0);
+  const handledScrollRequest = useRef(-1);
+  const todayDate = format(new Date(), "yyyy-MM-dd");
   const today = format(new Date(), "yyyy-MM"),
     month = search.month ?? today,
     view = search.view ?? initialView;
@@ -135,6 +139,46 @@ function CalendarContent({ config }: { config: PublicConfig }) {
     calendar.current?.getApi().gotoDate(month + "-01");
   }, [month, view]);
   const data = query.data;
+  useEffect(() => {
+    if (!data || handledScrollRequest.current === todayScrollRequest) return;
+    // Leave explicit month links and restored scroll positions alone on load.
+    if (month !== today) {
+      if (todayScrollRequest === 0)
+        handledScrollRequest.current = todayScrollRequest;
+      return;
+    }
+    if (
+      todayScrollRequest === 0 &&
+      (window.scrollY > 0 || window.location.hash)
+    ) {
+      handledScrollRequest.current = todayScrollRequest;
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      handledScrollRequest.current = todayScrollRequest;
+      const target =
+        view === "month"
+          ? content.current?.querySelector<HTMLElement>(".fc-day-today")
+          : content.current?.querySelector<HTMLElement>(
+              `[data-day="${todayDate}"]`,
+            );
+      if (!target) return;
+      const bounds = target.getBoundingClientRect();
+      // Show the date and the start of its releases, even for a very tall day.
+      const visibleHeight = Math.min(bounds.height, 160);
+      if (
+        bounds.top < 16 ||
+        bounds.top + visibleHeight > window.innerHeight - 16
+      ) {
+        target.scrollIntoView({
+          block: "start",
+          inline: "nearest",
+          behavior: "instant",
+        });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [data, month, today, todayDate, todayScrollRequest, view]);
   const events = (data?.events ?? []).filter(
     (e) =>
       (search.media === "all" || e.media === search.media) &&
@@ -182,7 +226,7 @@ function CalendarContent({ config }: { config: PublicConfig }) {
     setSelected(e);
   }
   return (
-    <div className="app-shell">
+    <div className="app-shell" ref={content}>
       <a className="skip-link" href="#calendar">
         Skip to calendar
       </a>
@@ -275,7 +319,10 @@ function CalendarContent({ config }: { config: PublicConfig }) {
             <div className="navigation">
               <Button
                 variant="outline"
-                onClick={() => update({ month: today })}
+                onClick={() => {
+                  update({ month: today });
+                  setTodayScrollRequest((request) => request + 1);
+                }}
               >
                 Today
               </Button>
@@ -400,7 +447,14 @@ function CalendarContent({ config }: { config: PublicConfig }) {
                       timeZone={config.timezone}
                       dayCellContent={(info) => (
                         <>
-                          <span>{info.dayNumberText}</span>
+                          <span
+                            className={
+                              info.isToday ? "today-number" : undefined
+                            }
+                            aria-current={info.isToday ? "date" : undefined}
+                          >
+                            {info.dayNumberText}
+                          </span>
                           {info.isToday && (
                             <span className="today-label">Today</span>
                           )}
@@ -448,10 +502,22 @@ function CalendarContent({ config }: { config: PublicConfig }) {
                 ) : (
                   <div className="agenda">
                     {[...groups].map(([day, list]) => (
-                      <section className="agenda-day" key={day}>
+                      <section className="agenda-day" key={day} data-day={day}>
                         <div className="agenda-date">
-                          <strong>{format(parseISO(day), "dd")}</strong>
+                          <strong
+                            className={
+                              day === todayDate ? "today-number" : undefined
+                            }
+                            aria-current={
+                              day === todayDate ? "date" : undefined
+                            }
+                          >
+                            {format(parseISO(day), "dd")}
+                          </strong>
                           <span>{format(parseISO(day), "EEE")}</span>
+                          {day === todayDate && (
+                            <span className="today-label">Today</span>
+                          )}
                         </div>
                         <div className="agenda-items">
                           {list.map((e) => (
