@@ -1,7 +1,6 @@
 {
-  "title": "EdonCloud Calendar",
-  "tagline": "Your next great watch, on the horizon.",
-  "brandMark": "E",
+  "title": "Calendar",
+  "brandMark": "C",
   "timezone": "local",
   "requestLabel": "Request a title",
   "staleAfterMinutes": 60

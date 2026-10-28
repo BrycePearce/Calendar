@@ -41,7 +41,7 @@ test("default responsive view, filters, details, navigation and same-origin netw
   );
   await page.goto("/?month=2026-10");
   await expect(
-    page.getByRole("heading", { name: "Good things are coming." }),
+    page.getByRole("heading", { name: "Calendar", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", {
@@ -248,4 +248,43 @@ test("month events and overflow support keyboard activation", async ({
   await more.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".fc-popover")).toBeVisible();
+});
+
+test("dark shell before assets load", async ({ page }) => {
+  await page.route(/\.(css|js)(\?.*)?$/, (route) => route.abort());
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveCSS(
+    "background-color",
+    "rgb(12, 14, 18)",
+  );
+  await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+  await expect(page.locator("body")).toHaveCSS(
+    "background-color",
+    "rgb(12, 14, 18)",
+  );
+});
+
+test("compact header and prominent current day", async ({ page }, info) => {
+  await page.route("**/data/calendar.json", (route) =>
+    route.fulfill({ json: demoSnapshot(fixed) }),
+  );
+  await page.goto("/?month=2026-10&view=month");
+  await expect(
+    page.getByRole("heading", { name: "Calendar", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".intro")).toHaveCount(0);
+  const today = page.locator(".fc-day-today");
+  await expect(today.locator(".today-label")).toHaveText("Today");
+  await expect(today).toHaveCSS("background-image", /linear-gradient/);
+  await expect(today.locator(".fc-daygrid-day-frame")).toHaveCSS(
+    "box-shadow",
+    /inset/,
+  );
+  if (info.project.name === "desktop") {
+    await page.setViewportSize({ width: 2560, height: 1440 });
+    await expect(page.locator(".event-content strong").first()).toHaveCSS(
+      "font-size",
+      "15px",
+    );
+  }
 });

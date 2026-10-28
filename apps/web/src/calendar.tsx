@@ -13,7 +13,6 @@ import {
   List,
   Search as SearchIcon,
   Tv,
-  Radio,
   X,
 } from "lucide-react";
 import {
@@ -167,15 +166,9 @@ function CalendarContent({ config }: { config: PublicConfig }) {
       <header className="site-header">
         <a href="/" className="brand">
           <span className="brand-mark">{config.brandMark}</span>
-          <span>
-            {config.title}
-            <small>THE RELEASE GUIDE</small>
-          </span>
+          <h1>{config.title}</h1>
         </a>
         <div className="header-end">
-          <span className="read-only">
-            <Radio size={13} /> Read-only calendar
-          </span>
           {config.requestUrl && (
             <Button asChild variant="outline">
               <a
@@ -191,21 +184,14 @@ function CalendarContent({ config }: { config: PublicConfig }) {
         </div>
       </header>
       <main>
-        <section className="intro">
-          <div>
-            <div className="eyebrow">COMING TO A SCREEN NEAR YOU</div>
-            <h1>
-              Good things are coming<span>.</span>
-            </h1>
-            <p>{config.tagline}</p>
-          </div>
+        <div className="calendar-meta">
           <div className="timezone">
             <Clock3 size={15} />
             <span>
-              YOUR TIMEZONE<strong>{timezone.replaceAll("_", " ")}</strong>
+              Timezone <strong>{timezone.replaceAll("_", " ")}</strong>
             </span>
           </div>
-        </section>
+        </div>
         <section
           className="calendar-panel"
           id="calendar"
@@ -383,6 +369,14 @@ function CalendarContent({ config }: { config: PublicConfig }) {
                       editable={false}
                       selectable={false}
                       timeZone={config.timezone}
+                      dayCellContent={(info) => (
+                        <>
+                          <span>{info.dayNumberText}</span>
+                          {info.isToday && (
+                            <span className="today-label">Today</span>
+                          )}
+                        </>
+                      )}
                       events={events.map((e) => ({
                         id: e.id,
                         title: e.title,
@@ -525,10 +519,6 @@ function CalendarContent({ config }: { config: PublicConfig }) {
           </span>
         </section>
       </main>
-      <footer className="site-footer">
-        <span>{config.title}</span>
-        <span>A little anticipation goes a long way.</span>
-      </footer>
       <Dialog
         open={!!selected}
         onOpenChange={(open) => {

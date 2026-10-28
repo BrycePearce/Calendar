@@ -70,7 +70,7 @@ button:hover {
   filter: brightness(1.13);
 }
 .app-shell {
-  max-width: 1600px;
+  max-width: 1840px;
   margin: auto;
   padding: 0 4.5%;
 }
@@ -101,35 +101,17 @@ button:hover {
   font-weight: 800;
   box-shadow: 0 0 25px #4cd4e713;
 }
-.brand small {
-  display: block;
-  font-size: 8px;
-  letter-spacing: 2.5px;
-  color: #8e99ab;
-  margin-top: 6px;
-  font-weight: 550;
-}
 .header-end {
   display: flex;
   align-items: center;
   gap: 25px;
-}
-.read-only {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #9ca6b6;
-  font-size: 11px;
-}
-.read-only svg {
-  color: #7edec8;
 }
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 550;
   min-height: 36px;
   padding: 8px 13px;
@@ -154,50 +136,18 @@ button:hover {
   width: 34px;
   padding: 5px;
 }
-.intro {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 47px 0 35px;
-}
-.eyebrow {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  color: #8b99ab;
-  margin-bottom: 15px;
-}
-h1 {
-  font-size: clamp(27px, 3.2vw, 42px);
-  line-height: 1.15;
-  letter-spacing: -1.6px;
-  font-weight: 650;
-  margin: 0;
-}
-h1 > span {
-  color: #70d9e8;
-}
-.intro p {
-  font-size: 13px;
-  color: #9da7b8;
-  margin: 13px 0 0;
-}
 .timezone {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: #74849b;
-  font-size: 9px;
-  letter-spacing: 1.3px;
-  margin-top: 24px;
+  gap: 8px;
+  color: #9caabb;
+  font-size: 13px;
 }
 .timezone strong {
-  display: block;
-  color: #bdc7d5;
-  font-size: 11px;
-  letter-spacing: 0;
+  color: #d0d9e6;
+  font-size: inherit;
   font-weight: 500;
-  margin-top: 6px;
+  margin-left: 5px;
 }
 .calendar-panel {
   background: #12151b;
@@ -249,7 +199,7 @@ h1 > span {
   background: transparent;
   color: #e0e6ef;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   min-width: 0;
   width: 100%;
 }
@@ -284,7 +234,7 @@ h2 > span {
   font-weight: 400;
 }
 .event-count {
-  font-size: 10px;
+  font-size: 13px;
   background: #242b35;
   border: 1px solid #303845;
   border-radius: 20px;
@@ -301,7 +251,7 @@ h2 > span {
   gap: 2px;
 }
 .view-switch .button {
-  font-size: 11px;
+  font-size: 14px;
   padding: 6px 10px;
 }
 .legend-row {
@@ -310,7 +260,7 @@ h2 > span {
   justify-content: space-between;
   padding: 0 24px 20px;
   gap: 15px;
-  font-size: 10px;
+  font-size: 13px;
   color: #9da9ba;
 }
 .legend {
@@ -353,7 +303,7 @@ h2 > span {
   height: 12px;
 }
 .fc {
-  font-size: 11px;
+  font-size: 14px;
 }
 .fc .fc-scrollgrid {
   border-left: 0;
@@ -366,7 +316,7 @@ h2 > span {
   border-right: 0;
   text-align: left;
   color: #8692a4;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -377,19 +327,18 @@ h2 > span {
   padding: 9px 10px 5px;
 }
 .fc .fc-daygrid-day-number {
-  font-size: 11px;
+  font-size: 14px;
   color: #a4afbe;
 }
 .fc .fc-day-today .fc-daygrid-day-number {
-  background: #74d5e8;
-  color: #10242c;
-  width: 24px;
-  height: 24px;
+  background: #84e5f5;
+  color: #09232d;
   border-radius: 7px;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  margin-top: -3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  font-weight: 750;
 }
 .fc .fc-daygrid-day-frame {
   min-height: 135px;
@@ -421,7 +370,7 @@ h2 > span {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 8px;
+  font-size: 11px;
   opacity: 0.8;
   margin-bottom: 4px;
   white-space: nowrap;
@@ -433,20 +382,20 @@ h2 > span {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 550;
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.45;
 }
 .episode-title {
   display: block;
-  font-size: 9px;
-  opacity: 0.7;
+  font-size: 12px;
+  opacity: 0.9;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
   margin-top: 2px;
 }
 .fc .fc-daygrid-more-link {
-  font-size: 9px;
+  font-size: 12px;
   margin: 2px 8px 5px;
   color: #b7c9dd;
   padding: 3px;
@@ -472,7 +421,7 @@ h2 > span {
   gap: 12px;
   border-top: 1px solid var(--border);
   padding: 14px 22px;
-  font-size: 9px;
+  font-size: 12px;
   color: #8995a7;
 }
 .source-status {
@@ -480,7 +429,7 @@ h2 > span {
   gap: 26px;
   align-items: center;
   padding: 23px 3px;
-  font-size: 10px;
+  font-size: 13px;
   color: #97a4b6;
   flex-wrap: wrap;
 }
@@ -494,7 +443,7 @@ h2 > span {
   font-weight: 550;
 }
 .source-status small {
-  font-size: 9px;
+  font-size: 12px;
   color: #7b889a;
   margin-left: 4px;
 }
@@ -512,26 +461,13 @@ h2 > span {
 }
 .source-note {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 12px;
   color: #7d8a9e;
-}
-.site-footer {
-  display: flex;
-  justify-content: space-between;
-  border-top: 1px solid #20252e;
-  padding: 25px 0 35px;
-  margin-top: 15px;
-  font-size: 10px;
-  color: #6f7b8e;
-}
-.site-footer > span:first-child {
-  font-weight: 600;
-  color: #8e9aab;
 }
 .notice {
   background: #332b1c;
   color: #e5c68c;
-  font-size: 12px;
+  font-size: 14px;
   padding: 14px 24px;
   border-top: 1px solid #52432c;
   display: flex;
@@ -543,7 +479,7 @@ h2 > span {
   padding: 70px 24px;
   text-align: center;
   color: #9eabba;
-  font-size: 13px;
+  font-size: 15px;
 }
 .empty > svg {
   margin: auto;
@@ -577,7 +513,7 @@ h2 > span {
   color: #cfdae8;
 }
 .agenda-date > span {
-  font-size: 10px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #8a97ab;
@@ -621,17 +557,17 @@ h2 > span {
 .agenda-title strong {
   display: block;
   color: #dee6f2;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 550;
 }
 .agenda-title small {
   display: block;
-  font-size: 10px;
+  font-size: 13px;
   color: #94a3b8;
   margin-top: 5px;
 }
 .release-badge {
-  font-size: 9px;
+  font-size: 12px;
   border: 1px solid #3c5264;
   border-radius: 4px;
   padding: 4px 7px;
@@ -642,7 +578,7 @@ h2 > span {
   border-color: #574732;
 }
 .event-time {
-  font-size: 10px;
+  font-size: 13px;
   width: 70px;
   text-align: right;
 }
@@ -691,7 +627,7 @@ h2 > span {
 }
 .detail-type {
   display: block;
-  font-size: 10px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   margin-bottom: 10px;
@@ -706,7 +642,7 @@ h2 > span {
 }
 .dialog-content [id$="description"] {
   color: #a9b6c9;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.7;
 }
 .detail-date {
@@ -716,16 +652,16 @@ h2 > span {
   display: flex;
   gap: 12px;
   align-items: center;
-  font-size: 12px;
+  font-size: 14px;
 }
 .detail-date small {
   display: block;
   color: #8fa0b7;
-  font-size: 11px;
+  font-size: 14px;
   margin-top: 7px;
 }
 .detail-note {
-  font-size: 11px;
+  font-size: 14px;
   color: #8d9cb2;
   line-height: 1.7;
   margin: 24px 0 0;
@@ -751,7 +687,7 @@ h2 > span {
     padding: 9px;
   }
   .event-content strong {
-    font-size: 11px;
+    font-size: 14px;
   }
 }
 @media (max-width: 950px) {
@@ -759,7 +695,11 @@ h2 > span {
     padding: 0 3%;
   }
   .timezone {
-    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #9caabb;
+    font-size: 13px;
   }
   .source-note {
     display: none;
@@ -781,7 +721,7 @@ h2 > span {
     padding: 5px;
   }
   .event-content strong {
-    font-size: 9px;
+    font-size: 12px;
   }
   .source-status {
     gap: 14px;
@@ -802,44 +742,22 @@ h2 > span {
     height: 36px;
     font-size: 20px;
   }
-  .brand small {
-    font-size: 7px;
-    letter-spacing: 2px;
-  }
-  .read-only {
-    display: none;
-  }
   .header-end .button {
-    font-size: 10px;
+    font-size: 13px;
     padding: 6px 8px;
-  }
-  .intro {
-    padding: 32px 0 27px;
-    flex-direction: column;
-    align-items: flex-start;
   }
   .timezone {
     display: flex;
-    font-size: 8px;
+    align-items: center;
+    gap: 8px;
+    color: #9caabb;
+    font-size: 13px;
   }
   .timezone strong {
-    display: inline;
-    margin-left: 8px;
-    font-size: 10px;
-  }
-  .eyebrow {
-    font-size: 8px;
-    letter-spacing: 1.6px;
-    margin-bottom: 12px;
-  }
-  h1 {
-    font-size: 29px;
-    letter-spacing: -1.1px;
-    max-width: 300px;
-  }
-  .intro p {
-    font-size: 11px;
-    line-height: 1.7;
+    color: #d0d9e6;
+    font-size: inherit;
+    font-weight: 500;
+    margin-left: 5px;
   }
   .toolbar {
     flex-direction: column;
@@ -882,10 +800,10 @@ h2 > span {
   }
   .view-switch .button {
     padding: 6px 8px;
-    font-size: 10px;
+    font-size: 13px;
   }
   .navigation > .button {
-    font-size: 11px;
+    font-size: 14px;
   }
   .legend-row {
     flex-wrap: wrap;
@@ -896,10 +814,10 @@ h2 > span {
     gap: 15px;
   }
   .legend {
-    font-size: 9px;
+    font-size: 12px;
   }
   .release-filters label {
-    font-size: 10px;
+    font-size: 13px;
   }
   .agenda {
     padding: 0 13px 8px;
@@ -915,7 +833,7 @@ h2 > span {
     font-size: 22px;
   }
   .agenda-date > span {
-    font-size: 9px;
+    font-size: 12px;
   }
   .agenda-event {
     gap: 9px;
@@ -934,19 +852,19 @@ h2 > span {
     flex-basis: calc(100% - 50px);
   }
   .agenda-title strong {
-    font-size: 11px;
+    font-size: 14px;
     line-height: 1.5;
   }
   .agenda-title small {
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.5;
   }
   .release-badge {
     margin-left: 37px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .event-time {
-    font-size: 9px;
+    font-size: 12px;
     width: auto;
     margin-left: auto;
   }
@@ -956,7 +874,7 @@ h2 > span {
   .panel-footer {
     flex-direction: column;
     padding: 13px;
-    font-size: 8px;
+    font-size: 11px;
     gap: 7px;
   }
   .source-status {
@@ -964,20 +882,10 @@ h2 > span {
     align-items: flex-start;
     gap: 13px;
     padding: 21px 0;
-    font-size: 9px;
+    font-size: 12px;
   }
   .source-status small {
-    font-size: 8px;
-  }
-  .site-footer {
-    font-size: 8px;
-    margin-top: 6px;
-    gap: 20px;
-    line-height: 1.7;
-  }
-  .site-footer > span:last-child {
-    max-width: 140px;
-    text-align: right;
+    font-size: 11px;
   }
   .dialog-content {
     bottom: 0;
@@ -997,7 +905,7 @@ h2 > span {
     min-width: 680px;
   }
   .notice {
-    font-size: 11px;
+    font-size: 14px;
     padding: 13px;
   }
   .empty {
@@ -1011,5 +919,52 @@ h2 > span {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+}
+.calendar-meta {
+  display: flex;
+  justify-content: flex-end;
+  padding: 22px 2px 14px;
+}
+.fc .fc-daygrid-day.fc-day-today {
+  background: linear-gradient(155deg, #254c5b 0%, #19323f 50%, #15242f 100%);
+}
+.fc .fc-day-today .fc-daygrid-day-frame {
+  box-shadow: inset 0 0 0 2px #71dcf2;
+}
+.today-label {
+  font-size: 11px;
+  letter-spacing: 0.2px;
+}
+@media (min-width: 1450px) {
+  .event-content strong {
+    font-size: 15px;
+  }
+  .event-meta {
+    font-size: 12px;
+  }
+  .episode-title {
+    font-size: 13px;
+  }
+}
+@media (max-width: 700px) {
+  .brand h1 {
+    font-size: 22px;
+  }
+  .calendar-meta {
+    padding: 18px 0 12px;
+  }
+  .timezone {
+    font-size: 12px;
+  }
+  .source-status > div {
+    flex-wrap: wrap;
   }
 }

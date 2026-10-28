@@ -45,7 +45,7 @@ Only sanitized data is retained on upstream failures. Check the UI's per-source 
 
 ## Public configuration and data
 
-All fields in `private/public-config.json` are public: `title`, `brandMark`, `tagline`, `timezone` (`local` or `UTC`), optional `requestUrl` (HTTPS), `requestLabel`, and `staleAfterMinutes`. Never put credentials or internal addresses here. See `deployment/public-config.example.json` for an example.
+All fields in `private/public-config.json` are public: `title`, `brandMark`, `tagline` (legacy, no longer displayed), `timezone` (`local` or `UTC`), optional `requestUrl` (HTTPS), `requestLabel`, and `staleAfterMinutes`. Never put credentials or internal addresses here. See `deployment/public-config.example.json` for an example.
 
 The versioned contract in `packages/calendar-schema/src/index.ts` publishes generation time, coverage, source health/last-success times, and events containing namespaced numeric IDs, media type, titles, release type, and dates. Episodes may include season/episode numbers and use timestamped air dates. Movie dates remain date-only. Titles and these fields are intentionally public. Browser filters do not control publication.
 

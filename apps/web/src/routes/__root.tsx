@@ -12,7 +12,9 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Release Calendar" },
+      { title: "Calendar" },
+      { name: "color-scheme", content: "dark" },
+      { name: "theme-color", content: "#0c0e12" },
       {
         name: "description",
         content: "A read-only TV and movie release calendar.",
@@ -25,11 +27,11 @@ export const Route = createRootRoute({
 });
 function Shell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ background: "#0c0e12", colorScheme: "dark" }}>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body style={{ margin: 0, background: "#0c0e12", color: "#e8ebf1" }}>
         {children}
         <Scripts />
       </body>

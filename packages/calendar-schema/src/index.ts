@@ -83,12 +83,12 @@ export const snapshotSchema = z
   });
 export const publicConfigSchema = z
   .object({
-    title: z.string().trim().min(1).max(80).default("EdonCloud Calendar"),
+    title: z.string().trim().min(1).max(80).default("Calendar"),
     tagline: z
       .string()
       .max(160)
       .default("Your next great watch, on the horizon."),
-    brandMark: z.string().min(1).max(3).default("E"),
+    brandMark: z.string().min(1).max(3).default("C"),
     timezone: z.enum(["local", "UTC"]).default("local"),
     requestUrl: z
       .url()
