@@ -721,7 +721,7 @@ function CalendarContent({
           )}
           <footer className="panel-footer">
             <span>Timezone: {timezone.replaceAll("_", " ")}</span>
-            <span>Air & release dates · Not library availability</span>
+            <span>Air & release dates</span>
             <span>
               {data
                 ? `Export window: ${data.coverage.start} — ${data.coverage.end}`
@@ -810,10 +810,6 @@ function CalendarContent({
                 </small>
               </span>
             </div>
-            <p className="detail-note">
-              This is an {selected.media === "tv" ? "air" : "announced release"}{" "}
-              date, not a confirmation of availability in your library.
-            </p>
           </DialogContent>
         )}
       </Dialog>

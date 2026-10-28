@@ -453,10 +453,22 @@ h2 > span {
 }
 .fc .fc-daygrid-more-link {
   font-size: 12px;
+  font-weight: 600;
   margin: 2px 8px 5px;
-  color: #b7c9dd;
-  padding: 3px;
+  color: #dce2ed;
+  background: #2b3240;
+  border-radius: 4px;
+  padding: 3px 6px;
   cursor: pointer;
+}
+.fc .fc-daygrid-more-link:hover,
+.fc .fc-daygrid-more-link:focus-visible {
+  color: #f4f6fb;
+  background: #3b4658;
+}
+.fc .fc-daygrid-more-link:focus-visible {
+  outline: 2px solid #b7c9dd;
+  outline-offset: 2px;
 }
 .fc .fc-popover {
   background: #1c222c;
@@ -894,12 +906,6 @@ h2 > span {
   font-size: 14px;
   margin-top: 7px;
 }
-.detail-note {
-  font-size: 14px;
-  color: #8d9cb2;
-  line-height: 1.7;
-  margin: 24px 0 0;
-}
 .skip-link {
   position: fixed;
   left: 10px;
@@ -1246,7 +1252,7 @@ h2 > span {
     line-height: 16px;
   }
   .month-shell .fc .fc-daygrid-more-link {
-    padding: 0 2px;
+    padding: 0 6px;
     margin: 1px 8px;
     line-height: 16px;
   }
