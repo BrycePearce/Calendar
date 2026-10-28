@@ -1157,20 +1157,57 @@ h2 > span {
     min-height: 0;
   }
   .month-shell .fc .fc-daygrid-day-top {
-    min-height: 38px;
-    padding: 4px 8px;
+    min-height: 26px;
+    padding: 0 8px;
+  }
+  .month-shell .fc .fc-daygrid-day-events {
+    margin-bottom: 0;
+  }
+  .month-shell .fc .fc-daygrid-day-number {
+    padding: 2px 0;
+  }
+  .month-shell .today-number {
+    width: 24px;
+    height: 24px;
   }
   .month-shell .fc .fc-daygrid-body .fc-daygrid-event {
-    padding: 3px 6px;
+    padding: 2px 6px;
     margin: 2px 4px;
   }
-  .month-shell .fc-daygrid-body .event-meta,
+  .month-shell .fc-daygrid-body .event-meta {
+    display: flex;
+    margin-bottom: 1px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .month-shell .fc-daygrid-body .event-content strong {
+    font-size: 13px;
+    line-height: 16px;
+  }
+  .month-shell .fc .fc-daygrid-more-link {
+    padding: 0 2px;
+    margin: 1px 8px;
+    line-height: 16px;
+  }
   .month-shell .fc-daygrid-body .episode-title {
     display: none;
   }
   .month-shell .source-status {
     padding-top: 18px;
     padding-bottom: 18px;
+  }
+}
+/* Taller screens have room for the episode subtitle without growing the grid. */
+@media (min-width: 951px) and (min-height: 700px) and (max-height: 849px) {
+  .month-shell .fc-daygrid-body .event-meta {
+    display: none;
+  }
+}
+@media (min-width: 951px) and (min-height: 1050px) {
+  .month-shell .fc-daygrid-body .episode-title {
+    display: block;
+    font-size: 11px;
+    line-height: 1.2;
   }
 }
 .calendar-meta {

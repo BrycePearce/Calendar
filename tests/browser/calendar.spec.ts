@@ -407,6 +407,9 @@ test("month reveals once after configuration, data and code are ready", async ({
     });
     releaseCode();
     await expect(page.locator(".fc")).toBeVisible();
+    await expect(
+      page.locator(".fc-daygrid-event:visible .event-meta").first(),
+    ).toBeVisible();
     await expect(page.locator(".month-skeleton")).toHaveCount(0);
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
     const loaded = await page.locator(".calendar-panel").boundingBox();

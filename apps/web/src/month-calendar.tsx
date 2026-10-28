@@ -21,6 +21,9 @@ export default function MonthCalendar({
   onReady: () => void;
 }) {
   const calendar = useRef<FullCalendar>(null);
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window === "undefined" ? 900 : window.innerHeight,
+  );
   const [fitScreen, setFitScreen] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -30,9 +33,16 @@ export default function MonthCalendar({
     const media = window.matchMedia(
       "(min-width: 951px) and (min-height: 700px)",
     );
-    const update = () => setFitScreen(media.matches);
+    const update = () => {
+      setFitScreen(media.matches);
+      setViewportHeight(window.innerHeight);
+    };
     media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
+    window.addEventListener("resize", update);
+    return () => {
+      media.removeEventListener("change", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
   useEffect(() => {
     calendar.current
@@ -51,6 +61,15 @@ export default function MonthCalendar({
         extendedProps: { record: e },
       })),
     [events],
+  );
+  // Reserve room for controls, date labels and overflow links. Explicit limits
+  // avoid FullCalendar hiding all detailed cards on otherwise roomy desktops.
+  const cardLimit = Math.max(
+    1,
+    Math.floor(
+      ((viewportHeight - 380) / (standardMonth ? 6 : 5) - 54) /
+        (viewportHeight >= 1050 ? 50 : 34),
+    ),
   );
   return (
     <FullCalendar
@@ -71,7 +90,8 @@ export default function MonthCalendar({
       expandRows={fitScreen}
       stickyHeaderDates={true}
       fixedWeekCount={false}
-      dayMaxEvents={fitScreen ? true : 3}
+      dayMaxEvents={fitScreen ? (viewportHeight < 850 ? true : cardLimit) : 3}
+      eventOrderStrict={true}
       moreLinkClick="popover"
       eventInteractive={true}
       editable={false}

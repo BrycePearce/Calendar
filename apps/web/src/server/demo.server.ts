@@ -2,6 +2,7 @@ import { snapshotSchema, type CalendarEvent } from "@calendar/schema";
 export function demoSnapshot(now = new Date(), monthsAhead = 0) {
   const month = now.toISOString().slice(0, 7);
   const events: CalendarEvent[] = [];
+  // Fictional titles and schedules, with realistic weekly cadence and release density.
   const series = [
     "The Quiet Orbit",
     "Harbor of Echoes",
@@ -9,60 +10,155 @@ export function demoSnapshot(now = new Date(), monthsAhead = 0) {
     "A World Apart",
     "The Glass Garden",
     "Midnight Bureau",
+    "The Last Frontier",
+    "City of Strangers",
+    "After the Storm",
+    "The Long Way Home",
+    "Station Eleven: New Horizons",
+    "The Night Shift",
+    "Wild Coast",
+    "Second Chances",
+    "The Kitchen Table",
+    "Northern Lights",
+    "The Missing Hour",
+    "Beyond the Map",
+    "Deep Water",
+    "The Sunday Club",
+    "Open Roads",
+    "House of Secrets",
+    "Small Town Stories",
+    "The Other Side",
+    "Summer in December",
+    "The Final Chapter",
+    "Parallel Lives",
+    "The Great Bake-Off Challenge",
+    "Inside the Observatory",
+    "The Dispatch",
+    "Blue Horizon",
+    "The Art of Starting Over",
+    "Under the Same Sky",
+    "Lost & Found",
+    "The Last Train",
+    "The Weekend Report",
+    "Hidden Worlds",
+    "The Reunion",
+    "First Responders",
+    "The Academy",
+    "Across the Divide",
+    "The Late Show",
+    "The Museum After Dark",
+    "Tales from the Outer Rim",
   ];
-  for (let day = 1; day <= 28; day++) {
-    if (day % 7 === 0) continue;
-    const count = day === 15 ? 7 : day % 3 === 0 ? 3 : day % 2 === 0 ? 2 : 1;
-    for (let i = 0; i < count; i++) {
-      const id = day * 10 + i,
-        date = `${month}-${String(day).padStart(2, "0")}`;
-      if (i === 1 || day % 5 === 0)
+  const movies = [
+    "Beyond the Blue",
+    "The Last Observatory",
+    "Paper Satellites",
+    "A Thousand Tomorrows",
+    "The Silent Passenger",
+    "Echoes of Yesterday",
+    "The Winter House",
+    "Chasing Daylight",
+    "A Place to Begin",
+    "The Last Expedition",
+    "When the City Sleeps",
+    "Wildflowers",
+    "The Lighthouse Keeper",
+    "An Unlikely Friendship",
+    "The Far Side of Morning",
+    "Underneath the Stars",
+    "The Invisible Thread",
+    "A Summer to Remember",
+    "The Clockmaker",
+    "Departure",
+    "The Book of Small Wonders",
+    "Northern Passage",
+    "The Perfect Stranger",
+    "The Lost Photograph",
+    "Out of the Woods",
+    "Homeward",
+    "The Distance Between Us",
+    "Nightfall",
+    "The Secret of Blackwater Bay",
+    "The Crossing",
+  ];
+  const episodes = [
+    "A distant light",
+    "The way home",
+    "An unexpected visitor",
+    "Nothing stays still",
+    "The turning point",
+    "Between two worlds",
+    "No way back",
+    "Everything we left behind",
+    "The long goodbye",
+    "A new beginning",
+  ];
+  const days = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  const counts = [5, 6, 6, 5, 8, 8, 6];
+  for (let day = 1; day <= days; day++) {
+    const date = `${month}-${String(day).padStart(2, "0")}`;
+    const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+    const start = counts
+      .slice(0, weekday)
+      .reduce((sum, count) => sum + count, 0);
+    for (let i = 0; i < counts[weekday]; i++) {
+      const show = start + i;
+      events.push({
+        id: `sonarr:${day * 100 + i}:air`,
+        media: "tv",
+        title: series[show],
+        episodeTitle: episodes[(show + Math.floor(day / 7)) % episodes.length],
+        season: 1 + (show % 8),
+        episode: 3 + Math.floor((day - 1) / 7),
+        releaseType: "air",
+        at: `${date}T${[7, 10, 17, 20, 21, 23, 8, 19][i]}:00:00Z`.replace(
+          /T(\d):/,
+          "T0$1:",
+        ),
+      });
+    }
+    // A streaming season drop creates a genuinely crowded day, not duplicate movies.
+    if (day === 1 || day === 15) {
+      for (let episode = 1; episode <= 10; episode++)
         events.push({
-          id: `radarr:${id}:digital`,
-          media: "movie",
-          title: [
-            "Beyond the Blue",
-            "The Last Observatory",
-            "Paper Satellites",
-            "A Thousand Tomorrows",
-          ][day % 4],
-          releaseType: "digital",
-          date,
-        });
-      else
-        events.push({
-          id: `sonarr:${id}:air`,
+          id: `sonarr:${5000 + day * 100 + episode}:air`,
           media: "tv",
-          title: series[(day + i) % series.length],
-          episodeTitle: [
-            "A distant light",
-            "The way home",
-            "An unexpected visitor",
-            "Nothing stays still",
-          ][day % 4],
-          season: 2,
-          episode: day,
+          title: day === 1 ? "The Archive" : "The Vanishing Coast",
+          episodeTitle: episodes[episode - 1],
+          season: 1,
+          episode,
           releaseType: "air",
-          at: `${date}T20:00:00Z`,
+          at: `${date}T07:00:00Z`,
         });
     }
+    const movieCount =
+      weekday === 5 || weekday === 2
+        ? 3
+        : weekday === 0 || weekday === 3
+          ? 0
+          : 1;
+    for (let i = 0; i < movieCount; i++) {
+      const movie = (day + i * 9) % movies.length;
+      const releaseType =
+        weekday === 5 ? "theatrical" : weekday === 2 ? "physical" : "digital";
+      events.push({
+        id: `radarr:${day * 100 + i}:${releaseType}`,
+        media: "movie",
+        title: movies[movie],
+        releaseType,
+        date,
+      });
+    }
   }
-  events.push(
-    {
-      id: "radarr:900:theatrical",
-      media: "movie",
-      title: "The Last Observatory",
-      releaseType: "theatrical",
-      date: `${month}-15`,
-    },
-    {
-      id: "radarr:900:physical",
-      media: "movie",
-      title: "The Last Observatory",
-      releaseType: "physical",
-      date: `${month}-15`,
-    },
-  );
+  events.push({
+    id: "radarr:90000:theatrical",
+    media: "movie",
+    title: "The Last Observatory",
+    releaseType: "theatrical",
+    date: `${month}-15`,
+  });
   const coverage = {
     start: `${month}-01`,
     end: `${month}-${new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate()}`,
