@@ -1,4 +1,5 @@
 import { useRouterState } from "@tanstack/react-router";
+import { resolveView, useViewPreference } from "./view-preference";
 
 export function ReleaseSkeleton() {
   return (
@@ -25,9 +26,9 @@ export function ReleaseSkeleton() {
 }
 
 export function CalendarSkeleton() {
-  const month = useRouterState({
-    select: (state) => state.location.search.view === "month",
-  });
+  const search = useRouterState({ select: (state) => state.location.search });
+  const preferred = useViewPreference();
+  const month = resolveView(search, preferred) !== "agenda";
   return (
     <main
       className={`app-shell${month ? " month-shell" : ""}`}

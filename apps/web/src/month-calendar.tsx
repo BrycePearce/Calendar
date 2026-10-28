@@ -6,13 +6,15 @@ import type { CalendarEvent, PublicConfig } from "@calendar/schema";
 import { episodeLabel } from "./lib";
 import { labels, timeLabel } from "./event-format";
 export default function MonthCalendar({
-  month,
+  week,
+  standardMonth = false,
   events,
   config,
   openEvent,
   onReady,
 }: {
-  month: string;
+  week: string;
+  standardMonth?: boolean;
   events: CalendarEvent[];
   config: PublicConfig;
   openEvent: (event: CalendarEvent) => void;
@@ -33,9 +35,11 @@ export default function MonthCalendar({
     return () => media.removeEventListener("change", update);
   }, []);
   useEffect(() => {
-    calendar.current?.getApi().gotoDate(month + "-01");
+    calendar.current
+      ?.getApi()
+      .changeView(standardMonth ? "dayGridMonth" : "rolling", week);
     onReady();
-  }, [month, onReady]);
+  }, [week, standardMonth, onReady]);
   const calendarEvents = useMemo(
     () =>
       events.map((e) => ({
@@ -52,8 +56,16 @@ export default function MonthCalendar({
     <FullCalendar
       ref={calendar}
       plugins={[dayGridPlugin]}
-      initialView="dayGridMonth"
-      initialDate={month + "-01"}
+      initialView={standardMonth ? "dayGridMonth" : "rolling"}
+      views={{
+        rolling: {
+          type: "dayGrid",
+          duration: { weeks: 5 },
+          dateAlignment: "week",
+        },
+      }}
+      firstDay={0}
+      initialDate={week}
       headerToolbar={false}
       height={fitScreen ? "100%" : "auto"}
       expandRows={fitScreen}

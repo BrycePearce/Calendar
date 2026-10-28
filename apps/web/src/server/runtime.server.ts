@@ -33,7 +33,9 @@ export function startRuntime() {
       );
       if (process.env.CALENDAR_DEMO === "true") {
         return createPoller(async () => {
-          runtime.snapshot = prepare(snapshotSchema.parse(demoSnapshot()));
+          runtime.snapshot = prepare(
+            snapshotSchema.parse(demoSnapshot(new Date(), 2)),
+          );
           runtime.ready = true;
         }, 900000);
       }

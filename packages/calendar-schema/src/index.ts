@@ -102,13 +102,17 @@ export const publicConfigSchema = z
   })
   .strict();
 export const searchSchema = z.object({
+  week: calendarDate
+    .refine((s) => +s.slice(0, 4) >= 1970 && +s.slice(0, 4) <= 2100)
+    .optional()
+    .catch(undefined),
   month: z
     .string()
     .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
     .refine((s) => +s.slice(0, 4) >= 1970 && +s.slice(0, 4) <= 2100)
     .optional()
     .catch(undefined),
-  view: z.enum(["month", "agenda"]).optional().catch(undefined),
+  view: z.enum(["month", "monthly", "agenda"]).optional().catch(undefined),
   media: z.enum(["all", "tv", "movie"]).default("all").catch("all"),
   releases: z.preprocess(
     (value) =>

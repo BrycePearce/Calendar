@@ -1,3 +1,4 @@
+import { CalendarSearch } from "./calendar-search";
 import { labels, timeLabel } from "./event-format";
 import { CalendarSkeleton, ReleaseSkeleton } from "./loading";
 import {
@@ -10,7 +11,20 @@ import {
   useState,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { addDays, addMonths, format, parseISO, endOfMonth } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  endOfMonth,
+  startOfWeek,
+  format,
+  parseISO,
+} from "date-fns";
+import {
+  resolveView,
+  saveViewPreference,
+  useViewPreference,
+  type CalendarView,
+} from "./view-preference";
 import {
   ArrowUpRight,
   CalendarDays,
@@ -18,9 +32,7 @@ import {
   ChevronRight,
   Film,
   List,
-  Search as SearchIcon,
   Tv,
-  X,
 } from "lucide-react";
 import {
   publicConfigSchema,
@@ -61,15 +73,19 @@ function useCalendarQuery() {
 }
 export function CalendarApp() {
   const search = Route.useSearch();
+  const preferred = useViewPreference();
+  const activeView = resolveView(search, preferred);
   useEffect(() => {
-    if (search.view === "month") void loadMonthCalendar().catch(() => {});
-  }, [search.view]);
+    if (preferred !== undefined && activeView !== "agenda")
+      void loadMonthCalendar().catch(() => {});
+  }, [activeView, preferred]);
   const configQuery = useQuery({
     queryKey: ["config"],
     queryFn: async () => publicConfigSchema.parse(await json("/config.json")),
   });
   const query = useCalendarQuery();
-  if (configQuery.isPending) return <CalendarSkeleton />;
+  if (configQuery.isPending || preferred === undefined)
+    return <CalendarSkeleton />;
   if (!configQuery.data)
     return (
       <main className="loading load-error">
@@ -94,7 +110,19 @@ function CalendarContent({
 }) {
   const search = Route.useSearch(),
     navigate = Route.useNavigate();
-  const initialView = "agenda";
+  const updateSearch = useCallback(
+    (q: string) => {
+      void navigate({
+        search: (prev) => ({ ...prev, q }),
+        replace: true,
+        resetScroll: false,
+      });
+    },
+    [navigate],
+  );
+  const preferred = useViewPreference();
+  const view = resolveView(search, preferred);
+  const initialView = preferred === "month" ? "month" : undefined;
   const [futureDays, setFutureDays] = useState(30);
   const [pastDays, setPastDays] = useState(0);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
@@ -113,17 +141,43 @@ function CalendarContent({
     config.timezone === "UTC"
       ? new Date(clock).toISOString().slice(0, 10)
       : format(new Date(clock), "yyyy-MM-dd");
-  const today = todayDate.slice(0, 7),
-    month = search.month ?? today,
-    view = search.view ?? initialView;
-  const monthDate = parseISO(month + "-01");
+  const today = format(
+    startOfWeek(parseISO(todayDate), { weekStartsOn: 0 }),
+    "yyyy-MM-dd",
+  );
+  const monthKey = search.month ?? todayDate.slice(0, 7);
+  const week =
+    view === "monthly"
+      ? monthKey + "-01"
+      : format(
+          startOfWeek(
+            parseISO(
+              search.week ?? (search.month ? search.month + "-01" : today),
+            ),
+            { weekStartsOn: 0 },
+          ),
+          "yyyy-MM-dd",
+        );
+  const gridEnd = format(
+    view === "monthly"
+      ? endOfMonth(parseISO(week))
+      : addDays(parseISO(week), 34),
+    "yyyy-MM-dd",
+  );
   const update = (patch: Partial<Search>, replace = false) =>
     void navigate({
       search: (prev) => {
         const next = { ...prev, ...patch };
+        const nextView = next.view ?? view;
         return {
           ...next,
-          month: next.month === today ? undefined : next.month,
+          month: nextView === "monthly" ? (next.month ?? monthKey) : undefined,
+          week:
+            nextView === "monthly"
+              ? undefined
+              : (next.week ?? week) === today
+                ? undefined
+                : (next.week ?? week),
           view: next.view === initialView ? undefined : next.view,
         };
       },
@@ -133,13 +187,33 @@ function CalendarContent({
   useEffect(() => {
     const normalized = {
       ...search,
-      month: search.month === today ? undefined : search.month,
-      view: search.view === initialView ? undefined : search.view,
+      month: view === "monthly" ? monthKey : undefined,
+      week: view === "monthly" ? undefined : week === today ? undefined : week,
+      view:
+        view === "month"
+          ? search.view === initialView
+            ? undefined
+            : search.view
+          : view,
     };
     if (window.location.search !== stringifyCalendarSearch(normalized)) {
       void navigate({ search: normalized, replace: true, resetScroll: false });
     }
-  }, [search, today, initialView, navigate]);
+  }, [search, today, week, monthKey, view, initialView, navigate]);
+  function selectView(nextView: CalendarView) {
+    saveViewPreference(nextView);
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        view: nextView,
+        week: undefined,
+        month: undefined,
+      }),
+      resetScroll: false,
+    });
+    setPastDays(0);
+    setFutureDays(30);
+  }
   useEffect(() => {
     document.title = config.title;
   }, [config.title]);
@@ -155,10 +229,12 @@ function CalendarContent({
   );
   const tomorrow = format(addDays(parseISO(todayDate), 1), "yyyy-MM-dd");
   useEffect(() => {
-    if (view !== "month" || !monthReady) return;
+    if (view === "agenda" || !monthReady) return;
     if (!data || handledScrollRequest.current === todayScrollRequest) return;
     // Leave explicit month links and restored scroll positions alone on load.
-    if (month !== today) {
+    if (
+      view === "monthly" ? monthKey !== todayDate.slice(0, 7) : week !== today
+    ) {
       if (todayScrollRequest === 0)
         handledScrollRequest.current = todayScrollRequest;
       return;
@@ -173,16 +249,12 @@ function CalendarContent({
     const frame = requestAnimationFrame(() => {
       handledScrollRequest.current = todayScrollRequest;
       const target =
-        view === "month"
-          ? content.current?.querySelector<HTMLElement>(".fc-day-today")
-          : content.current?.querySelector<HTMLElement>(
-              `[data-day="${todayDate}"]`,
-            );
+        content.current?.querySelector<HTMLElement>(".fc-day-today");
       if (!target) return;
       const bounds = target.getBoundingClientRect();
       // Show the date and the start of its releases, even for a very tall day.
       const visibleHeight = Math.min(bounds.height, 160);
-      const topInset = view === "month" && window.innerWidth > 700 ? 64 : 16;
+      const topInset = window.innerWidth > 700 ? 64 : 16;
       if (
         bounds.top < topInset ||
         bounds.top + visibleHeight > window.innerHeight - 16
@@ -195,7 +267,16 @@ function CalendarContent({
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [data, month, today, todayDate, todayScrollRequest, view, monthReady]);
+  }, [
+    data,
+    week,
+    monthKey,
+    today,
+    todayDate,
+    todayScrollRequest,
+    view,
+    monthReady,
+  ]);
   const dates = useMemo(
     () =>
       new Map(
@@ -222,8 +303,8 @@ function CalendarContent({
       events
         .filter((e) => {
           const day = dates.get(e.id)!;
-          return view === "month"
-            ? day.startsWith(month)
+          return view !== "agenda"
+            ? day >= week && day <= gridEnd
             : day >= rangeStart && day <= rangeEnd;
         })
         .sort(
@@ -234,7 +315,7 @@ function CalendarContent({
             ) ||
             a.title.localeCompare(b.title),
         ),
-    [events, dates, view, month, rangeStart, rangeEnd],
+    [events, dates, view, week, gridEnd, rangeStart, rangeEnd],
   );
   const groups = Map.groupBy(visible, (e) => dates.get(e.id)!);
   if (view === "agenda" && !groups.has(todayDate)) groups.set(todayDate, []);
@@ -252,15 +333,11 @@ function CalendarContent({
         ? (["radarr"] as const)
         : (["sonarr", "radarr"] as const);
   const outside =
-    view === "month" &&
+    view !== "agenda" &&
     data &&
     relevantSources.some((source) => {
       const c = data.sources[source].coverage;
-      return (
-        c &&
-        (month + "-01" < c.start ||
-          format(endOfMonth(monthDate), "yyyy-MM-dd") > c.end)
-      );
+      return c && (week < c.start || gridEnd > c.end);
     });
   function openEvent(e: CalendarEvent) {
     focusReturn.current =
@@ -271,7 +348,7 @@ function CalendarContent({
   }
   return (
     <div
-      className={`app-shell${view === "month" ? " month-shell" : ""}`}
+      className={`app-shell${view !== "agenda" ? " month-shell" : ""}`}
       ref={content}
     >
       <a className="skip-link" href="#calendar">
@@ -304,45 +381,38 @@ function CalendarContent({
                 </Button>
               ))}
             </div>
-            <label className="search">
-              <SearchIcon size={16} />
-              <input
-                aria-label="Search titles"
-                placeholder="Find your next watch…"
-                value={search.q}
-                onChange={(e) => update({ q: e.target.value }, true)}
-              />
-              {search.q && (
-                <button
-                  aria-label="Clear search"
-                  onClick={() => update({ q: "" }, true)}
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </label>
+            <CalendarSearch value={search.q} onChange={updateSearch} />
           </div>
           <div className="calendar-heading">
             <div className="month-title">
-              <h2 aria-live="polite" aria-atomic="true">
-                {view === "month" ? (
-                  <>
-                    {format(monthDate, "MMMM")}{" "}
-                    <span>{format(monthDate, "yyyy")}</span>
-                  </>
-                ) : (
-                  "Upcoming"
+              <div className="calendar-period">
+                <h2 aria-live="polite" aria-atomic="true">
+                  {view === "agenda"
+                    ? "Upcoming"
+                    : week.slice(0, 7) === gridEnd.slice(0, 7)
+                      ? format(parseISO(week), "MMMM yyyy")
+                      : `${format(parseISO(week), week.slice(0, 4) === gridEnd.slice(0, 4) ? "MMMM" : "MMMM yyyy")}–${format(parseISO(gridEnd), "MMMM yyyy")}`}
+                </h2>
+                {view !== "agenda" && (
+                  <p className="calendar-range">
+                    {format(parseISO(week), "MMM d")} –{" "}
+                    {format(parseISO(gridEnd), "MMM d, yyyy")}
+                  </p>
                 )}
-              </h2>
+              </div>
               <span className="event-count">{visible.length} releases</span>
             </div>
             <div className="navigation">
-              {view === "month" && (
+              {view !== "agenda" && (
                 <>
                   <Button
                     variant="outline"
                     onClick={() => {
-                      update({ month: today });
+                      update(
+                        view === "monthly"
+                          ? { month: todayDate.slice(0, 7) }
+                          : { week: today },
+                      );
                       setTodayScrollRequest((request) => request + 1);
                     }}
                   >
@@ -352,12 +422,26 @@ function CalendarContent({
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Previous month"
-                      title={format(addMonths(monthDate, -1), "MMMM yyyy")}
+                      aria-label={
+                        view === "monthly" ? "Previous month" : "Previous week"
+                      }
+
                       onClick={() =>
-                        update({
-                          month: format(addMonths(monthDate, -1), "yyyy-MM"),
-                        })
+                        update(
+                          view === "monthly"
+                            ? {
+                                month: format(
+                                  addMonths(parseISO(week), -1),
+                                  "yyyy-MM",
+                                ),
+                              }
+                            : {
+                                week: format(
+                                  addDays(parseISO(week), -7),
+                                  "yyyy-MM-dd",
+                                ),
+                              },
+                        )
                       }
                     >
                       <ChevronLeft size={19} />
@@ -365,12 +449,26 @@ function CalendarContent({
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Next month"
-                      title={format(addMonths(monthDate, 1), "MMMM yyyy")}
+                      aria-label={
+                        view === "monthly" ? "Next month" : "Next week"
+                      }
+
                       onClick={() =>
-                        update({
-                          month: format(addMonths(monthDate, 1), "yyyy-MM"),
-                        })
+                        update(
+                          view === "monthly"
+                            ? {
+                                month: format(
+                                  addMonths(parseISO(week), 1),
+                                  "yyyy-MM",
+                                ),
+                              }
+                            : {
+                                week: format(
+                                  addDays(parseISO(week), 7),
+                                  "yyyy-MM-dd",
+                                ),
+                              },
+                        )
                       }
                     >
                       <ChevronRight size={19} />
@@ -382,11 +480,7 @@ function CalendarContent({
                 <Button
                   variant="ghost"
                   aria-pressed={view === "agenda"}
-                  onClick={() => {
-                    update({ view: "agenda", month: undefined });
-                    setPastDays(0);
-                    setFutureDays(30);
-                  }}
+                  onClick={() => selectView("agenda")}
                 >
                   <List size={15} />
                   Upcoming
@@ -394,10 +488,17 @@ function CalendarContent({
                 <Button
                   variant="ghost"
                   aria-pressed={view === "month"}
-                  onClick={() => update({ view: "month" })}
+                  onClick={() => selectView("month")}
                 >
                   <CalendarDays size={15} />
-                  Month
+                  Calendar
+                </Button>
+                <Button
+                  variant="ghost"
+                  aria-pressed={view === "monthly"}
+                  onClick={() => selectView("monthly")}
+                >
+                  <CalendarDays size={15} /> Month
                 </Button>
               </div>
             </div>
@@ -438,7 +539,7 @@ function CalendarContent({
           </div>
           {outside && (
             <div className="notice" role="status">
-              This month extends beyond the exported coverage. Some dates may
+              This range extends beyond the exported coverage. Some dates may
               have no data.
             </div>
           )}
@@ -457,10 +558,11 @@ function CalendarContent({
           ) : (
             data && (
               <>
-                {view === "month" ? (
+                {view !== "agenda" ? (
                   <div className="month-grid">
                     <MonthCalendar
-                      month={month}
+                      week={week}
+                      standardMonth={view === "monthly"}
                       events={events}
                       config={config}
                       openEvent={openEvent}
@@ -578,14 +680,14 @@ function CalendarContent({
                     </div>
                   </div>
                 )}
-                {visible.length === 0 && view === "month" && (
+                {visible.length === 0 && view !== "agenda" && (
                   <div className="empty">
                     <CalendarDays size={30} />
                     <h3>No releases to show</h3>
                     <p>
                       {outside
-                        ? "Choose a month within the export window."
-                        : "Try another month, title, or release filter."}
+                        ? "Choose dates within the export window."
+                        : "Try another date range, title, or release filter."}
                     </p>
                   </div>
                 )}

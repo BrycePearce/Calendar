@@ -4,6 +4,12 @@ import { searchSchema } from "../packages/calendar-schema/src/index";
 import { stringifyCalendarSearch } from "../apps/web/src/search";
 
 describe("calendar URLs", () => {
+  it("preserves weekly links and rejects invalid dates", () => {
+    expect(stringifyCalendarSearch({ week: "2026-12-27" })).toBe(
+      "?week=2026-12-27",
+    );
+    expect(searchSchema.parse({ week: "2026-02-30" }).week).toBeUndefined();
+  });
   it("omits default filters, regardless of release order", () => {
     expect(stringifyCalendarSearch({})).toBe("");
     expect(

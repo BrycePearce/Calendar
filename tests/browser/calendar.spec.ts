@@ -1,6 +1,35 @@
 import { test, expect } from "@playwright/test";
 import { demoSnapshot } from "../../scripts/demo";
 const fixed = new Date("2026-10-15T12:00:00Z");
+
+test("search keeps typing local, highlights the whole field, and cancels pending text", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator(".fc-rolling-view")).toBeVisible();
+  const input = page.getByRole("textbox", { name: "Search titles" });
+  await expect(input).toHaveAttribute("placeholder", "Search titles…");
+  await page.clock.pauseAt(new Date("2026-10-15T12:01:00Z"));
+  await input.pressSequentially("Observatory");
+  await expect(input).toHaveValue("Observatory");
+  expect(new URL(page.url()).searchParams.has("q")).toBe(false);
+  await expect(page.locator(".search")).toHaveCSS("outline-style", "solid");
+  await expect(input).toHaveCSS("outline-style", "none");
+  await page.clock.runFor(250);
+  await expect(page).toHaveURL(/q=Observatory/);
+  await input.fill("pending text");
+  await page.getByRole("button", { name: "Clear search" }).click();
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue("");
+  await page.clock.runFor(250);
+  await expect(page).not.toHaveURL(/q=/);
+  await input.fill("Harbor");
+  await input.press("Enter");
+  await expect(page).toHaveURL(/q=Harbor/);
+  await page.clock.resume();
+  await page.goto("/?q=Glass");
+  await expect(input).toHaveValue("Glass");
+});
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: fixed });
 });
@@ -46,13 +75,13 @@ test("default responsive view, filters, details, navigation and same-origin netw
   await page.route("**/data/calendar.json", (r) =>
     r.fulfill({ json: demoSnapshot(fixed) }),
   );
-  await page.goto("/?month=2026-10");
+  await page.goto("/?week=2026-10-11");
   await expect(
     page.getByRole("heading", { name: "Calendar", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", {
-      name: "Upcoming",
+      name: "Calendar",
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -67,6 +96,7 @@ test("default responsive view, filters, details, navigation and same-origin netw
   await page
     .getByRole("textbox", { name: "Search titles" })
     .fill("Observatory");
+  await expect(page).toHaveURL(/q=Observatory/);
   const event = page.locator(".agenda-event").first();
   await expect(event).toBeVisible();
   await event.click();
@@ -79,15 +109,15 @@ test("default responsive view, filters, details, navigation and same-origin netw
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
   await expect(event).toBeFocused();
-  await page.getByRole("button", { name: "Month", exact: true }).click();
-  await page.getByRole("button", { name: "Next month" }).click();
-  await expect(page).toHaveURL(/2026-11/);
+  await page.getByRole("button", { name: "Calendar", exact: true }).click();
+  await page.getByRole("button", { name: "Next week" }).click();
+  await expect(page).toHaveURL(/week=2026-10-18/);
   await expect(
-    page.getByText("This month extends beyond", { exact: false }),
+    page.getByText("This range extends beyond", { exact: false }),
   ).toBeVisible();
   await page.goBack();
   await expect(
-    page.getByRole("heading", { name: "October 2026" }),
+    page.getByText("Oct 11 – Nov 14, 2026", { exact: true }),
   ).toBeVisible();
   expect(new URL(page.url()).searchParams.has("month")).toBe(false);
   expect(errors).toEqual([]);
@@ -100,9 +130,9 @@ test("clean default URLs and readable filter links", async ({ page }) => {
   await page.route("**/data/calendar.json", (route) =>
     route.fulfill({ json: demoSnapshot(fixed) }),
   );
-  const defaultView = "agenda";
+  const defaultView = "month";
   await page.goto(
-    `/?media=all&releases=%5B%22theatrical%22%2C%22physical%22%2C%22digital%22%5D&q=&view=${defaultView}&month=2026-10`,
+    `/?media=all&releases=%5B%22theatrical%22%2C%22physical%22%2C%22digital%22%5D&q=&view=${defaultView}&week=2026-10-11`,
   );
   await expect(page).toHaveURL("/");
   await page.getByRole("button", { name: "Movies", exact: true }).click();
@@ -128,7 +158,7 @@ test("crowded days, inert malicious text, release filters and keyboard", async (
     at: "2026-10-15T20:00:00Z",
   });
   await page.route("**/data/calendar.json", (r) => r.fulfill({ json: data }));
-  await page.goto("/?month=2026-10&view=month");
+  await page.goto("/?week=2026-10-11&view=month");
   await page.locator(".fc-daygrid-more-link").first().click();
   await expect(page.locator(".fc-popover")).toBeVisible();
   await page.screenshot({
@@ -168,7 +198,7 @@ test("stale, unavailable, malformed, empty, and loading states", async ({
   };
   data.events = data.events.filter((e) => e.media === "tv");
   await page.route("**/data/calendar.json", (r) => r.fulfill({ json: data }));
-  await page.goto("/?month=2026-10&view=agenda");
+  await page.goto("/?week=2026-10-11&view=agenda");
   await expect(page.getByText("Stale data", { exact: true })).toBeVisible();
   await expect(page.getByText("Unavailable", { exact: true })).toBeVisible();
   await page
@@ -256,7 +286,7 @@ test("loading and source-age status update even when the JSON stops changing", a
     await gate;
     await route.fulfill({ json: demoSnapshot(fixed) });
   });
-  await page.goto("/?month=2026-10&view=agenda");
+  await page.goto("/?week=2026-10-11&view=agenda");
   await expect(
     page.getByRole("status", { name: "Loading releases" }),
   ).toHaveAttribute("aria-busy", "true");
@@ -288,7 +318,7 @@ test("loads data in parallel with a quiet skeleton and defers the month bundle",
     await route.fulfill({ json: demoSnapshot(fixed) });
   });
   try {
-    await page.goto("/");
+    await page.goto("/?view=agenda");
     await expect.poll(() => calendarRequested).toBe(true);
     await expect(
       page.getByRole("status", { name: "Loading releases" }),
@@ -308,7 +338,7 @@ test("loads data in parallel with a quiet skeleton and defers the month bundle",
   await expect(
     page.getByRole("status", { name: "Loading releases" }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Month", exact: true }).click();
+  await page.getByRole("button", { name: "Calendar", exact: true }).click();
   await expect(page.locator(".fc")).toBeVisible();
   expect(scripts.some((url) => /month-calendar/.test(url))).toBe(true);
 });
@@ -435,7 +465,7 @@ test("month events and overflow support keyboard activation", async ({
   await page.route("**/data/calendar.json", (route) =>
     route.fulfill({ json: demoSnapshot(fixed) }),
   );
-  await page.goto("/?month=2026-10&view=month");
+  await page.goto("/?week=2026-10-11&view=month");
   const event = page.locator(".fc-event").first();
   await event.focus();
   await page.keyboard.press("Enter");
@@ -466,7 +496,7 @@ test("compact header and prominent current day", async ({ page }, info) => {
   await page.route("**/data/calendar.json", (route) =>
     route.fulfill({ json: demoSnapshot(fixed) }),
   );
-  await page.goto("/?month=2026-10&view=month");
+  await page.goto("/?week=2026-10-11&view=month");
   await expect(
     page.getByRole("heading", { name: "Calendar", exact: true }),
   ).toBeVisible();
@@ -500,48 +530,46 @@ test("compact header and prominent current day", async ({ page }, info) => {
   }
 });
 
-test("month load stays put and the Today button scrolls on request", async ({
+test("rolling calendar starts this week and Today resets navigation", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1100, height: 600 });
   await page.route("**/data/calendar.json", (route) =>
     route.fulfill({ json: demoSnapshot(fixed) }),
   );
-  await page.goto("/?view=month");
-  const marker = page.locator(".fc-day-today .today-number");
-  await expect(page.locator(".fc")).toBeVisible();
-  expect(await page.evaluate(() => window.scrollY)).toBe(0);
-  await page.getByRole("button", { name: "Today", exact: true }).click();
-  await expect(marker).toBeInViewport();
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
-  const weekdays = page.locator(".fc-col-header");
-  await expect(weekdays).toBeInViewport();
-  const headerBounds = await weekdays.boundingBox();
-  const markerBounds = await marker.boundingBox();
-  expect(markerBounds!.y).toBeGreaterThan(
-    headerBounds!.y + headerBounds!.height,
+  await page.goto("/");
+  await expect(page.locator(".fc-daygrid-day")).toHaveCount(35);
+  await expect(page.locator(".fc-daygrid-day").first()).toHaveAttribute(
+    "data-date",
+    "2026-10-11",
+  );
+  await expect(page.locator(".fc-daygrid-day").last()).toHaveAttribute(
+    "data-date",
+    "2026-11-14",
   );
   await expect(
-    page.getByRole("button", { name: "Previous month" }),
-  ).toHaveAttribute("title", "September 2026");
-  await expect(
-    page.getByRole("button", { name: "Next month" }),
-  ).toHaveAttribute("title", "November 2026");
-  await page.screenshot({ path: `artifacts/sticky-weekdays.png` });
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.getByRole("textbox", { name: "Search titles" }).fill("Fictional");
-  await expect(
-    page.getByRole("textbox", { name: "Search titles" }),
-  ).toHaveValue("Fictional");
+    page.getByRole("button", { name: "Calendar", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.getByRole("button", { name: "Next week" }).click();
+  await expect(page).toHaveURL("/?week=2026-10-18");
+  await expect(page.locator(".fc-daygrid-day").first()).toHaveAttribute(
+    "data-date",
+    "2026-10-18",
+  );
+  await page.goBack();
+  await expect(page.locator(".fc-daygrid-day").first()).toHaveAttribute(
+    "data-date",
+    "2026-10-11",
+  );
+  await page.getByRole("button", { name: "Previous week" }).click();
+  await expect(page).toHaveURL("/?week=2026-10-04");
   await page.getByRole("button", { name: "Today", exact: true }).click();
-  await expect(marker).toBeInViewport();
-  await page.getByRole("button", { name: "Next month" }).click();
-  await expect(
-    page.getByRole("heading", { name: "November 2026" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Today", exact: true }).click();
-  await expect(marker).toBeInViewport();
+  await expect(page).toHaveURL("/");
+  await expect(page.locator(".fc-daygrid-day").first()).toHaveAttribute(
+    "data-date",
+    "2026-10-11",
+  );
+  await page.screenshot({ path: "artifacts/rolling-calendar.png" });
 });
 
 test("agenda marks today and scrolls only when needed", async ({ page }) => {
@@ -564,7 +592,7 @@ test("agenda marks today and scrolls only when needed", async ({ page }) => {
   await page.screenshot({ path: "artifacts/agenda-today.png" });
   await page.goto("/?month=2026-11&view=month");
   await expect(
-    page.getByRole("heading", { name: "November 2026" }),
+    page.getByText("Nov 1 – Dec 5, 2026", { exact: true }),
   ).toBeVisible();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
@@ -595,7 +623,7 @@ test("upcoming starts today, expands across months, and keeps history accessible
       },
     }),
   );
-  await page.goto("/");
+  await page.goto("/?view=agenda");
   await expect(
     page.getByRole("button", { name: "Upcoming", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -629,10 +657,64 @@ test("upcoming starts today, expands across months, and keeps history accessible
   await expect(
     page.getByText("Release 2026-10-14", { exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Month", exact: true }).click();
+  await page.getByRole("button", { name: "Calendar", exact: true }).click();
   await expect(page.locator(".fc")).toBeVisible();
-  await expect(page).toHaveURL("/?view=month");
-  await page.getByRole("button", { name: "Upcoming", exact: true }).click();
   await expect(page).toHaveURL("/");
+  await page.getByRole("button", { name: "Upcoming", exact: true }).click();
+  await expect(page).toHaveURL("/?view=agenda");
   await expect(page.locator(".agenda-event")).toHaveCount(2);
+});
+
+test("remembers views while explicit links take precedence", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("button", { name: "Calendar", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+  await expect(page.locator(".fc-dayGridMonth-view")).toBeVisible();
+  await page.getByRole("button", { name: "Next month", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "November 2026", exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "November 2026", exact: true }),
+  ).toBeVisible();
+  await page.goto("/");
+  await expect(
+    page.getByRole("button", { name: "Month", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("heading", { name: "October 2026", exact: true }),
+  ).toBeVisible();
+  await page.goto("/?view=agenda");
+  await expect(
+    page.getByRole("button", { name: "Upcoming", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.goto("/");
+  await expect(
+    page.getByRole("button", { name: "Month", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Calendar", exact: true }).click();
+  await expect(page.locator(".fc-rolling-view")).toBeVisible();
+  await page.reload();
+  await expect(page.locator(".fc-rolling-view")).toBeVisible();
+});
+
+test("view selection works when storage is unavailable", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      get() {
+        throw new DOMException("Blocked", "SecurityError");
+      },
+    });
+  });
+  await page.goto("/");
+  await expect(page.locator(".fc-rolling-view")).toBeVisible();
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+  await expect(page.locator(".fc-dayGridMonth-view")).toBeVisible();
+  await page.reload();
+  await expect(page.locator(".fc-dayGridMonth-view")).toBeVisible();
 });

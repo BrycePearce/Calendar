@@ -13,5 +13,6 @@ export function stringifyCalendarSearch(input: Record<string, unknown>) {
     q: search.q || undefined,
     view: search.view,
     month: search.month,
+    week: search.week,
   }).replace(/(releases=)[^&]*/g, (value) => value.replaceAll("%2C", ","));
 }
