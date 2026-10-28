@@ -5,11 +5,21 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createIsomorphicFn } from "@tanstack/react-start";
 import { useState, type ReactNode } from "react";
 import css from "../styles.css?url";
 import iconSvg from "../../../../assets/calendar.svg?url";
 import iconPng from "../../../../assets/calendar.png?url";
+const loadInitialData = createIsomorphicFn()
+  .server(async () => {
+    const { initialCalendarData } = await import("../server/runtime.server");
+    return initialCalendarData();
+  })
+  .client(() => null);
 export const Route = createRootRoute({
+  loader: () => loadInitialData(),
+  staleTime: Infinity,
+  shouldReload: false,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -46,14 +56,23 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 function Root() {
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: { retry: 1, staleTime: 60000, refetchInterval: 60000 },
-        },
-      }),
-  );
+  const initial = Route.useLoaderData();
+  const [client] = useState(() => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: 1, staleTime: 60000, refetchInterval: 60000 },
+      },
+    });
+    if (initial?.config)
+      client.setQueryData(["config"], initial.config, {
+        updatedAt: initial.checkedAt,
+      });
+    if (initial?.snapshot)
+      client.setQueryData(["calendar"], initial.snapshot, {
+        updatedAt: initial.checkedAt,
+      });
+    return client;
+  });
   return (
     <QueryClientProvider client={client}>
       <Outlet />

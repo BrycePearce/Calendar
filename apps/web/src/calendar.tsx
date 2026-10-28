@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { createIsomorphicFn } from "@tanstack/react-start";
 import {
   addDays,
   addMonths,
@@ -23,6 +24,7 @@ import {
 } from "date-fns";
 import {
   resolveView,
+  readViewPreference,
   saveViewPreference,
   useViewPreference,
   type CalendarView,
@@ -57,6 +59,24 @@ import { stringifyCalendarSearch } from "./search";
 
 const loadMonthCalendar = () => import("./month-calendar");
 const MonthCalendar = lazy(loadMonthCalendar);
+
+// Discover the grid chunk as soon as the route module runs, before hydration.
+// Keep agenda-only visits from downloading FullCalendar.
+const preloadInitialView = createIsomorphicFn().client(() => {
+  const params = new URLSearchParams(window.location.search);
+  const view = params.get("view");
+  const search = {
+    view:
+      view === "month" || view === "monthly" || view === "agenda"
+        ? view
+        : undefined,
+    week: params.get("week") ?? undefined,
+    month: params.get("month") ?? undefined,
+  } satisfies Partial<Search>;
+  if (resolveView(search, readViewPreference()) !== "agenda")
+    void loadMonthCalendar().catch(() => {});
+});
+preloadInitialView();
 
 async function json(path: string) {
   const response = await fetch(path, {

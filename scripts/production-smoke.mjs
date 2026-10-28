@@ -112,7 +112,17 @@ try {
   const nonce = html.headers
     .get("content-security-policy")
     .match(/'nonce-([^']+)'/)[1];
-  assert.ok((await html.text()).includes(`nonce="${nonce}"`));
+  const markup = await html.text();
+  assert.ok(markup.includes(`nonce="${nonce}"`));
+  assert.ok(
+    markup.includes("Synthetic orbit"),
+    "HTML carries the cached public snapshot",
+  );
+  assert.equal(
+    markup.includes(sentinel),
+    false,
+    "HTML must not serialize private upstream fields",
+  );
   await stop();
   outage = true;
   await start();

@@ -93,6 +93,25 @@ test("search keeps typing local, highlights the whole field, and cancels pending
   await expect(input).toHaveValue("Glass");
 });
 test.beforeEach(async ({ page }, info) => {
+  // These tests supply JSON fixtures and exercise the missing-bootstrap fallback.
+  // Clear only the root's serialized loader data before hydration; keep the real
+  // server HTML, scripts and CSP. bootstrap.spec.ts tests the healthy SSR path.
+  await page.route(
+    (url) => url.pathname === "/",
+    async (route) => {
+      if (!route.request().isNavigationRequest()) return route.continue();
+      const response = await route.fetch();
+      const html = await response.text();
+      expect(html).toContain("$_TSR.e();");
+      await route.fulfill({
+        response,
+        body: html.replace(
+          "$_TSR.e();",
+          "$_TSR.router.matches[0].l = null;$_TSR.e();",
+        ),
+      });
+    },
+  );
   // Existing fitted-layout regressions explicitly exercise Compact; density
   // tests above cover the new Standard default and persistence.
   if (!info.title.startsWith("density "))

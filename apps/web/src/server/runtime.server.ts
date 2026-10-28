@@ -1,21 +1,42 @@
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { snapshotSchema, publicConfigSchema } from "@calendar/schema";
+import {
+  snapshotSchema,
+  publicConfigSchema,
+  type Snapshot,
+  type PublicConfig,
+} from "@calendar/schema";
 import { loadSettings } from "./settings.server";
 import { Exporter, fetchCalendar, prepareDirectories } from "./engine.server";
 import { createPoller, startOnce, currentPoller } from "./poller.server";
 import { demoSnapshot } from "./demo.server";
 
 const runtimeKey = Symbol.for("calendar.runtime.v2");
-type Prepared = { body: string; etag: string };
-type Runtime = { snapshot?: Prepared; publicConfig?: Prepared; ready: boolean };
+type Prepared<T> = { data: T; body: string; etag: string };
+type Runtime = {
+  snapshot?: Prepared<Snapshot>;
+  publicConfig?: Prepared<PublicConfig>;
+  ready: boolean;
+};
 const globals = globalThis as typeof globalThis & { [runtimeKey]?: Runtime };
 const state = () => (globals[runtimeKey] ??= { ready: false });
-function prepare(data: unknown): Prepared {
+function prepare<T>(data: T): Prepared<T> {
   const body = JSON.stringify(data);
   return {
+    data,
     body,
     etag: `W/"${createHash("sha256").update(body).digest("hex")}"`,
+  };
+}
+
+// Only already-validated public data enters the page's serialized loader data.
+// Never wait for upstreams: a missing snapshot falls back to the browser query.
+export function initialCalendarData() {
+  const runtime = state();
+  return {
+    config: runtime.publicConfig?.data ?? null,
+    snapshot: runtime.snapshot?.data ?? null,
+    checkedAt: Date.now(),
   };
 }
 

@@ -4,7 +4,7 @@ import type { Search } from "@calendar/schema";
 export type CalendarView = NonNullable<Search["view"]>;
 const key = "calendar.view.v1";
 const changed = "calendar-view-changed";
-function read(): CalendarView {
+export function readViewPreference(): CalendarView {
   try {
     const value = localStorage.getItem(key);
     if (value === "month" || value === "monthly" || value === "agenda")
@@ -23,7 +23,7 @@ function subscribe(callback: () => void) {
   };
 }
 export function useViewPreference() {
-  return useSyncExternalStore(subscribe, read, () => undefined);
+  return useSyncExternalStore(subscribe, readViewPreference, () => undefined);
 }
 export function saveViewPreference(view: CalendarView) {
   try {
