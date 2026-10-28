@@ -10,6 +10,9 @@
 !apps/web/src/**
 !apps/web/public/
 !apps/web/public/config.json
+!assets/
+!assets/calendar.svg
+!assets/calendar.png
 !apps/exporter/
 !apps/exporter/package.json
 !apps/exporter/src/**

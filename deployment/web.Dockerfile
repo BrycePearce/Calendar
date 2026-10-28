@@ -7,6 +7,7 @@ COPY apps/exporter/package.json apps/exporter/package.json
 COPY packages/calendar-schema/package.json packages/calendar-schema/package.json
 RUN pnpm install --frozen-lockfile
 COPY apps/web apps/web
+COPY assets assets
 COPY packages packages
 COPY scripts/finalize-build.mjs scripts/finalize-build.mjs
 RUN pnpm --filter @calendar/web build

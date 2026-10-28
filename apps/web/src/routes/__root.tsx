@@ -7,6 +7,8 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import css from "../styles.css?url";
+import iconSvg from "../../../../assets/calendar.svg?url";
+import iconPng from "../../../../assets/calendar.png?url";
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -20,7 +22,12 @@ export const Route = createRootRoute({
         content: "A read-only TV and movie release calendar.",
       },
     ],
-    links: [{ rel: "stylesheet", href: css }],
+    links: [
+      { rel: "stylesheet", href: css },
+      { rel: "icon", type: "image/png", sizes: "512x512", href: iconPng },
+      { rel: "icon", type: "image/svg+xml", sizes: "any", href: iconSvg },
+      { rel: "apple-touch-icon", href: iconPng },
+    ],
   }),
   component: Root,
   shellComponent: Shell,
