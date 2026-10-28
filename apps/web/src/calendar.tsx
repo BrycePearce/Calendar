@@ -1,3 +1,5 @@
+import { CompactToggle } from "./compact-toggle";
+import { useCompactPreference } from "./compact-preference";
 import { CalendarSearch } from "./calendar-search";
 import { labels, timeLabel } from "./event-format";
 import { CalendarSkeleton, ReleaseSkeleton } from "./loading";
@@ -120,6 +122,7 @@ function CalendarContent({
     },
     [navigate],
   );
+  const compact = useCompactPreference();
   const preferred = useViewPreference();
   const view = resolveView(search, preferred);
   const initialView = preferred === "month" ? "month" : undefined;
@@ -339,16 +342,16 @@ function CalendarContent({
       const c = data.sources[source].coverage;
       return c && (week < c.start || gridEnd > c.end);
     });
-  function openEvent(e: CalendarEvent) {
+  const openEvent = useCallback((e: CalendarEvent) => {
     focusReturn.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
     setSelected(e);
-  }
+  }, []);
   return (
     <div
-      className={`app-shell${view !== "agenda" ? " month-shell" : ""}`}
+      className={`app-shell${view !== "agenda" ? (compact ? " month-shell" : " expanded-shell") : ""}`}
       ref={content}
     >
       <a className="skip-link" href="#calendar">
@@ -384,8 +387,8 @@ function CalendarContent({
             <CalendarSearch value={search.q} onChange={updateSearch} />
           </div>
           <div className="calendar-heading">
-            <div className="month-title">
-              <div className="calendar-period">
+            <div className="calendar-period">
+              <div className="month-title">
                 <h2 aria-live="polite" aria-atomic="true">
                   {view === "agenda"
                     ? "Upcoming"
@@ -393,14 +396,14 @@ function CalendarContent({
                       ? format(parseISO(week), "MMMM yyyy")
                       : `${format(parseISO(week), week.slice(0, 4) === gridEnd.slice(0, 4) ? "MMMM" : "MMMM yyyy")}–${format(parseISO(gridEnd), "MMMM yyyy")}`}
                 </h2>
-                {view !== "agenda" && (
-                  <p className="calendar-range">
-                    {format(parseISO(week), "MMM d")} –{" "}
-                    {format(parseISO(gridEnd), "MMM d, yyyy")}
-                  </p>
-                )}
+                <span className="event-count">{visible.length} releases</span>
               </div>
-              <span className="event-count">{visible.length} releases</span>
+              {view !== "agenda" && (
+                <p className="calendar-range">
+                  {format(parseISO(week), "MMM d")} –{" "}
+                  {format(parseISO(gridEnd), "MMM d, yyyy")}
+                </p>
+              )}
             </div>
             <div className="navigation">
               {view !== "agenda" && (
@@ -501,6 +504,7 @@ function CalendarContent({
                   <CalendarDays size={15} /> Month
                 </Button>
               </div>
+              {view !== "agenda" && <CompactToggle value={compact} />}
             </div>
           </div>
           <div className="legend-row">
@@ -562,6 +566,7 @@ function CalendarContent({
                   <div className="month-grid">
                     <MonthCalendar
                       week={week}
+                      compact={compact}
                       standardMonth={view === "monthly"}
                       events={events}
                       config={config}

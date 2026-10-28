@@ -1,13 +1,33 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import { Film, Tv } from "lucide-react";
+import type {
+  DayCellContentArg,
+  EventClickArg,
+  EventContentArg,
+} from "@fullcalendar/core";
 import type { CalendarEvent, PublicConfig } from "@calendar/schema";
 import { episodeLabel } from "./lib";
 import { labels, timeLabel } from "./event-format";
-export default function MonthCalendar({
+const plugins = [dayGridPlugin];
+const views = {
+  rolling: { type: "dayGrid", duration: { weeks: 5 }, dateAlignment: "week" },
+};
+function renderDay(info: DayCellContentArg) {
+  const number = document.createElement("span");
+  number.textContent = info.dayNumberText;
+  if (!info.isToday) return { domNodes: [number] };
+  number.className = "today-number";
+  number.setAttribute("aria-current", "date");
+  const label = document.createElement("span");
+  label.className = "today-label";
+  label.textContent = "Today";
+  return { domNodes: [number, label] };
+}
+export default memo(function MonthCalendar({
   week,
   standardMonth = false,
+  compact = true,
   events,
   config,
   openEvent,
@@ -15,6 +35,7 @@ export default function MonthCalendar({
 }: {
   week: string;
   standardMonth?: boolean;
+  compact?: boolean;
   events: CalendarEvent[];
   config: PublicConfig;
   openEvent: (event: CalendarEvent) => void;
@@ -45,9 +66,15 @@ export default function MonthCalendar({
     };
   }, []);
   useEffect(() => {
-    calendar.current
-      ?.getApi()
-      .changeView(standardMonth ? "dayGridMonth" : "rolling", week);
+    const api = calendar.current?.getApi();
+    const view = standardMonth ? "dayGridMonth" : "rolling";
+    if (
+      api &&
+      (api.view.type !== view ||
+        api.getDate().toISOString().slice(0, 10) !== week)
+    ) {
+      api.changeView(view, week);
+    }
     onReady();
   }, [week, standardMonth, onReady]);
   const calendarEvents = useMemo(
@@ -71,64 +98,89 @@ export default function MonthCalendar({
         (viewportHeight >= 1050 ? 50 : 34),
     ),
   );
+  // Native event nodes avoid a React portal per release during FullCalendar's
+  // synchronous height/overflow recalculations. textContent keeps titles inert.
+  const renderEvent = useCallback(
+    (info: EventContentArg) => {
+      const event = info.event.extendedProps.record as CalendarEvent;
+      const card = document.createElement("div");
+      card.className = "event-content";
+      const meta = document.createElement("span");
+      meta.className = "event-meta";
+      meta.textContent =
+        event.media === "tv"
+          ? `${timeLabel(event, config)} · ${episodeLabel(event)}`
+          : labels[event.releaseType];
+      const title = document.createElement("strong");
+      const icon = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg",
+      );
+      for (const [name, value] of Object.entries({
+        width: "10",
+        height: "10",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        "stroke-width": "2",
+        "aria-hidden": "true",
+      }))
+        icon.setAttribute(name, value);
+      // Static icon paths only; event data is assigned through textContent.
+      icon.innerHTML =
+        event.media === "tv"
+          ? '<path d="m17 2-5 5-5-5"/><rect width="20" height="15" x="2" y="7" rx="2"/>'
+          : '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M17 3v18M3 12h18M3 7.5h4M3 16.5h4M17 7.5h4M17 16.5h4"/>';
+      meta.prepend(icon);
+      title.textContent = event.title;
+      card.append(meta, title);
+      if (event.media === "tv" && event.episodeTitle) {
+        const episode = document.createElement("span");
+        episode.className = "episode-title";
+        episode.textContent = event.episodeTitle;
+        card.append(episode);
+      }
+      return { domNodes: [card] };
+    },
+    [config],
+  );
+  const handleEventClick = useCallback(
+    (info: EventClickArg) =>
+      openEvent(info.event.extendedProps.record as CalendarEvent),
+    [openEvent],
+  );
   return (
     <FullCalendar
       ref={calendar}
-      plugins={[dayGridPlugin]}
+      plugins={plugins}
       initialView={standardMonth ? "dayGridMonth" : "rolling"}
-      views={{
-        rolling: {
-          type: "dayGrid",
-          duration: { weeks: 5 },
-          dateAlignment: "week",
-        },
-      }}
+      views={views}
       firstDay={0}
       initialDate={week}
       headerToolbar={false}
-      height={fitScreen ? "100%" : "auto"}
-      expandRows={fitScreen}
+      height={compact && fitScreen ? "100%" : "auto"}
+      expandRows={compact && fitScreen}
       stickyHeaderDates={true}
       fixedWeekCount={false}
-      dayMaxEvents={fitScreen ? (viewportHeight < 850 ? true : cardLimit) : 3}
+      dayMaxEvents={
+        compact
+          ? fitScreen
+            ? viewportHeight < 850
+              ? true
+              : cardLimit
+            : 3
+          : false
+      }
       eventOrderStrict={true}
       moreLinkClick="popover"
       eventInteractive={true}
       editable={false}
       selectable={false}
       timeZone={config.timezone}
-      dayCellContent={(info) => (
-        <>
-          <span
-            className={info.isToday ? "today-number" : undefined}
-            aria-current={info.isToday ? "date" : undefined}
-          >
-            {info.dayNumberText}
-          </span>
-          {info.isToday && <span className="today-label">Today</span>}
-        </>
-      )}
+      dayCellContent={renderDay}
       events={calendarEvents}
-      eventClick={(info) =>
-        openEvent(info.event.extendedProps.record as CalendarEvent)
-      }
-      eventContent={(info) => {
-        const e = info.event.extendedProps.record as CalendarEvent;
-        return (
-          <div className="event-content">
-            <span className="event-meta">
-              {e.media === "tv" ? <Tv size={10} /> : <Film size={10} />}{" "}
-              {e.media === "tv"
-                ? `${timeLabel(e, config)} · ${episodeLabel(e)}`
-                : labels[e.releaseType]}
-            </span>
-            <strong>{e.title}</strong>
-            {e.media === "tv" && e.episodeTitle && (
-              <span className="episode-title">{e.episodeTitle}</span>
-            )}
-          </div>
-        );
-      }}
+      eventClick={handleEventClick}
+      eventContent={renderEvent}
     />
   );
-}
+});

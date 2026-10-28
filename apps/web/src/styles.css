@@ -216,6 +216,7 @@ button:hover {
 }
 .calendar-heading {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   padding: 25px 24px 20px;
@@ -231,6 +232,7 @@ button:hover {
 }
 .month-title {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 15px;
 }
@@ -245,6 +247,8 @@ h2 > span {
   font-weight: 400;
 }
 .event-count {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-size: 13px;
   background: #242b35;
   border: 1px solid #303845;
@@ -254,6 +258,7 @@ h2 > span {
 }
 .navigation {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 13px;
 }
@@ -387,6 +392,36 @@ h2 > span {
   min-width: 0;
   overflow: hidden;
   width: 100%;
+}
+.compact-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #acb8c9;
+  white-space: nowrap;
+}
+.expanded-shell .fc .fc-daygrid-event {
+  padding: 9px 8px;
+  margin: 4px 5px;
+}
+.expanded-shell .event-content strong {
+  font-size: 15px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.expanded-shell .event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  white-space: normal;
+}
+.expanded-shell .episode-title {
+  display: block;
+  font-size: 13px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .event-meta {
   display: flex;
@@ -983,6 +1018,29 @@ h2 > span {
     justify-content: space-between;
     width: 100%;
   }
+  .calendar-period {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 6px 10px;
+    width: 100%;
+  }
+  .calendar-period .month-title {
+    display: contents;
+  }
+  .calendar-period h2 {
+    grid-column: 1 / -1;
+    font-size: 23px;
+  }
+  .calendar-period .event-count {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .calendar-range {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+  }
   h2 {
     font-size: 23px;
   }
@@ -995,6 +1053,9 @@ h2 > span {
     flex-wrap: wrap;
   }
   .view-switch {
+    order: 2;
+  }
+  .navigation .compact-toggle {
     margin-left: auto;
   }
   .view-switch .button {

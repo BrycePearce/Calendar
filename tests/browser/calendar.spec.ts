@@ -2,6 +2,60 @@ import { test, expect } from "@playwright/test";
 import { demoSnapshot } from "../../scripts/demo";
 const fixed = new Date("2026-10-15T12:00:00Z");
 
+test("compact acknowledges clicks before layout and applies the latest choice", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator(".month-shell .fc")).toBeVisible();
+  await page.clock.pauseAt(new Date("2026-10-15T12:01:00Z"));
+  const toggle = page.getByRole("checkbox", { name: "Compact", exact: true });
+  await toggle.uncheck();
+  await expect(toggle).not.toBeChecked();
+  await expect(page.locator(".month-shell .fc")).toBeVisible();
+  await toggle.check();
+  await toggle.uncheck();
+  await expect(toggle).not.toBeChecked();
+  await page.clock.runFor(100);
+  await expect(page.locator(".expanded-shell .fc")).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("calendar.compact.v1")),
+  ).toBe("false");
+});
+
+test("compact preference switches between a fitted grid and full detailed cards", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const compact = page.getByRole("checkbox", { name: "Compact", exact: true });
+  await expect(compact).toBeChecked();
+  await expect(page.locator(".month-shell .fc")).toBeVisible();
+  await compact.uncheck();
+  await expect(page.locator(".expanded-shell .fc")).toBeVisible();
+  await expect(page.locator(".event-content strong").first()).toHaveCSS(
+    "font-size",
+    "15px",
+  );
+  await expect(page.locator(".fc-daygrid-more-link")).toHaveCount(0);
+  await expect(
+    page.locator(".fc-daygrid-event .episode-title").first(),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight),
+  ).toBeGreaterThan(900);
+  await page.reload();
+  await expect(compact).not.toBeChecked();
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+  await expect(compact).not.toBeChecked();
+  await expect(page.locator(".fc-dayGridMonth-view")).toBeVisible();
+  await compact.check();
+  await expect(page.locator(".month-shell .fc")).toBeVisible();
+  await page.reload();
+  await expect(compact).toBeChecked();
+  await page.getByRole("button", { name: "Upcoming", exact: true }).click();
+  await expect(compact).toHaveCount(0);
+});
+
 test("search keeps typing local, highlights the whole field, and cancels pending text", async ({
   page,
 }) => {
@@ -528,7 +582,7 @@ test("compact header and prominent current day", async ({ page }, info) => {
     await page.setViewportSize({ width: 2560, height: 1440 });
     await expect(page.locator(".event-content strong").first()).toHaveCSS(
       "font-size",
-      "15px",
+      "13px",
     );
   }
 });
