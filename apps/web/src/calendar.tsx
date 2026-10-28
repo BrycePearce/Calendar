@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import FullCalendar from "@fullcalendar/react";
+import calendarIcon from "../../../assets/calendar.svg?url";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { addMonths, format, parseISO, endOfMonth } from "date-fns";
 import {
@@ -165,7 +166,13 @@ function CalendarContent({ config }: { config: PublicConfig }) {
       </a>
       <header className="site-header">
         <a href="/" className="brand">
-          <span className="brand-mark">{config.brandMark}</span>
+          <img
+            className="brand-mark"
+            src={calendarIcon}
+            alt=""
+            width={44}
+            height={44}
+          />
           <h1>{config.title}</h1>
         </a>
         <div className="header-end">

@@ -1,14 +1,12 @@
-# EdonCloud Calendar
+# Calendar
 
-Read-only TV and movie release calendar. Sonarr and Radarr feed a private exporter, which writes sanitized JSON for a static Nginx website. Dates describe scheduled airings and releases, not download or playback availability.
+A TV and movie release calendar powered by Sonarr and Radarr. Shows air and release dates, not download availability.
 
-![Calendar month view with fictional TV and movie releases](docs/images/calendar-demo.png)
+![Calendar with fictional demo data](docs/images/calendar-demo.png)
 
-_Preview uses fictional demo data._
+## Try the demo
 
-## Try it locally
-
-Use Node.js 24 LTS and pnpm 10.28.2.
+Use Node.js 24 and pnpm 10.28.2. No credentials or Docker needed.
 
 ```sh
 corepack enable
@@ -17,41 +15,50 @@ pnpm install --frozen-lockfile
 pnpm dev:demo
 ```
 
-`pnpm dev:demo` generates fictional TV episodes and movie releases for the current month, then starts the development server. No API keys, Sonarr/Radarr, or Docker are needed. Open the local URL printed in the terminal; filters, search, event details, and mobile agenda work normally.
+Open the URL printed in the terminal. Demo data is fictional and refreshes to the current month each time you run the command. It is excluded from production Docker builds.
 
-Run it again to refresh the demo dates. Data stays in ignored `apps/web/public/data/` and is excluded from production Docker builds. Production never falls back to demo data. To develop without fixtures, delete `apps/web/public/data/calendar.json` and run `pnpm dev`.
+## Run with Sonarr and Radarr
 
-## Deployment
-
-Two containers: `web` serves static files; `exporter` contacts private Sonarr/Radarr services and exposes no port.
+The app uses two containers: a private exporter reads Sonarr/Radarr, and a web server displays the calendar. Only the exporter receives API keys.
 
 1. Create `private/`, `runtime/public/`, and `runtime/private-state/`.
-2. Copy `deployment/exporter.example.json` to `private/exporter.json` and `deployment/public-config.example.json` to `private/public-config.json`.
-3. Enter API keys privately into `private/sonarr-key` and `private/radarr-key`. Set upstream URLs in the private exporter config.
-4. Choose publication settings. The example's empty `allowIds` lists publish nothing. Remove `allowIds` and set `monitoredOnly: true` to publish monitored items. TV requires both series and episode monitoring. Without either restriction, all dated calendar results are eligible.
-5. Set host permissions before starting: exporter UID/GID defaults to `1000:1000`, web to `101:101`. Exporter needs write access to both runtime directories and read access to its keys/config. Keep private files restricted; public directories/files must be readable by web (typically 0755/0644). Compose supports `EXPORTER_UID`, `EXPORTER_GID`, `WEB_UID`, and `WEB_GID` overrides.
+2. Copy the two example JSON files from `deployment/` into `private/`, removing `.example` from their names.
+3. Set your upstream URLs in `private/exporter.json`. Save API keys in `private/sonarr-key` and `private/radarr-key`.
+4. For monitored items, remove the `allowIds` entries and set `monitoredOnly: true`. The example's empty allowlists publish nothing.
+5. Give the exporter read access to its private files and write access to both runtime folders. Default UID/GID: exporter `1000:1000`, web `101:101`. Web needs read access to public output and `private/public-config.json`.
 
 ```sh
-docker compose -f deployment/compose.yaml config --quiet
-docker compose -f deployment/compose.yaml up -d --build
-docker compose -f deployment/compose.yaml ps
+docker compose -p edoncloud-calendar -f deployment/compose.yaml up -d --build
 ```
 
-Put machine-specific settings in an ignored `deployment/compose.local.yaml` and include it with a second `-f` argument. Compose binds web to host loopback port 8080 by default. A tunnel in another container cannot reach that host binding through its own `localhost`: use a shared Docker network or a deliberately configured host-reachable port. Point Cloudflare Tunnel only to web. Never expose Sonarr/Radarr or mount private files into web.
+The default address is `http://127.0.0.1:8080`. For Unraid or a separate tunnel container, configure a reachable address in an ignored `deployment/compose.local.yaml` and add `-f deployment/compose.local.yaml` to Compose commands. Point the tunnel only to the web container.
 
-The exporter refreshes at startup and every 15 minutes by default, covering 30 days back through 180 days ahead. Settings include `intervalMinutes`, `daysBack`, `daysAhead`, and `timeoutMs`. Source config supports `url`, `apiKeyFile`, `apiVersion`, `allowIds`, and `monitoredOnly`. Sonarr supports v3/v5 paths; Radarr uses v3. Validate compatibility with installed versions privately.
+Edit `private/public-config.json` for the site title, timezone, and optional request link. Everything in that file is public. Keep API keys, upstream addresses, and live exports out of Git.
 
-Only sanitized data is retained on upstream failures. Check the UI's per-source status; container health alone does not establish upstream success. Keys/config changes require an exporter restart. Keep persistent state and public output across upgrades. Back up private files separately and retain previous images for rollback.
+Data refreshes every 15 minutes by default. Restart the exporter after changing its configuration or keys.
 
-## Public configuration and data
+## Update
 
-All fields in `private/public-config.json` are public: `title`, `brandMark`, `tagline` (legacy, no longer displayed), `timezone` (`local` or `UTC`), optional `requestUrl` (HTTPS), `requestLabel`, and `staleAfterMinutes`. Never put credentials or internal addresses here. See `deployment/public-config.example.json` for an example.
+From the deployment folder:
 
-The versioned contract in `packages/calendar-schema/src/index.ts` publishes generation time, coverage, source health/last-success times, and events containing namespaced numeric IDs, media type, titles, release type, and dates. Episodes may include season/episode numbers and use timestamped air dates. Movie dates remain date-only. Titles and these fields are intentionally public. Browser filters do not control publication.
+```sh
+git pull --ff-only
+docker compose -p edoncloud-calendar -f deployment/compose.yaml -f deployment/compose.local.yaml up -d --build
+```
 
-Nginx serves missing JSON as 404. Keep HTML, config, and calendar JSON revalidating at the CDN; hashed assets may be cached immutably. No Start server runtime or upstream proxy is deployed.
+Omit the second `-f` if you do not use a local override. For frontend-only changes, append `--no-deps web`. Keep private files and runtime folders in place; containers do not need to be deleted first.
 
-## Checks
+## Unraid icons
+
+Set `CALENDAR_ICON_URL` in your ignored `.env` to the public URL of `assets/calendar.png`, then run Compose again. Install the matching icon templates once:
+
+```sh
+bash deployment/install-unraid-icons.sh https://example.com/calendar.png
+```
+
+Replace the example with your actual icon URL. Use Compose for container updates; these templates only provide icons. If Unraid still shows question marks, its icon metadata may need refreshing.
+
+## Development checks
 
 ```sh
 pnpm build
@@ -62,22 +69,6 @@ pnpm format:check
 pnpm scan
 ```
 
-`pnpm scan` requires Gitleaks on PATH or `GITLEAKS_BIN`; it checks the working tree, Git history, and built frontend markers. Scanning cannot guarantee absence of secrets. Keep credentials, live exports, logs, and screenshots out of Git. Rotate credentials if they reach shared artifacts or history.
+Secret scanning requires Gitleaks. Browser tests use `pnpm test:e2e` with the built web container running on port 8080 and Playwright Chromium installed. GitHub CI runs checks without deploying.
 
-Browser tests use synthetic data against the built web container at `http://127.0.0.1:8080` (override with `TEST_BASE_URL`): run `pnpm exec playwright install chromium`, then `pnpm test:e2e`. GitHub CI runs checks and container tests automatically; it does not deploy.
-
-No application license has been selected. Bundled font and UI component license notices are in `licenses/`.
-
-## Unraid icons
-
-`assets/calendar.png` is the transparent container icon; `assets/calendar.svg` is its editable source. Host the PNG at a public HTTPS URL (for a public GitHub repo, use its raw file URL). Set `CALENDAR_ICON_URL` in an ignored `.env` before recreating the containers to apply the Docker icon labels.
-
-For the native Docker tab's template lookup, run this on Unraid after creating both containers:
-
-```sh
-bash deployment/install-unraid-icons.sh https://example.com/calendar.png
-```
-
-Replace the example URL with the actual PNG URL. The installer follows the running containers' names and writes matching `my-<name>.xml` icon metadata into Unraid's template directory. It refuses to overwrite a different existing template. Set `COMPOSE_PROJECT_NAME` if your stack uses a project name other than `edoncloud-calendar`.
-
-These are icon-only templates: continue using Compose to update/recreate containers, not Unraid's template editor, which does not have their mounts or security settings. Both containers share the icon; the exporter keeps API keys separate from the public web server.
+No application license selected yet. Bundled component notices are in `licenses/`.
