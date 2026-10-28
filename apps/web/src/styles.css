@@ -393,7 +393,7 @@ h2 > span {
   overflow: hidden;
   width: 100%;
 }
-.compact-toggle {
+.density-select {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1055,7 +1055,7 @@ h2 > span {
   .view-switch {
     order: 2;
   }
-  .navigation .compact-toggle {
+  .navigation .density-select {
     margin-left: auto;
   }
   .view-switch .button {
@@ -1335,4 +1335,24 @@ h2 > span {
   .source-status > div {
     flex-wrap: wrap;
   }
+}
+
+.density-select select {
+  font: inherit;
+  color: #e0e6ef;
+  background: #101319;
+  border: 1px solid #2a303a;
+  border-radius: 6px;
+  padding: 7px 8px;
+  cursor: pointer;
+}
+.density-select select:focus-visible {
+  outline: 2px solid #71dcf2;
+  outline-offset: 2px;
+}
+.standard-shell .event-content strong {
+  font-size: 14px;
+}
+.standard-shell .skeleton-month-grid > div {
+  min-height: 270px;
 }

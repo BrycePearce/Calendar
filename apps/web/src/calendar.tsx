@@ -1,5 +1,5 @@
-import { CompactToggle } from "./compact-toggle";
-import { useCompactPreference } from "./compact-preference";
+import { DensitySelect } from "./density-select";
+import { useDensityPreference } from "./density-preference";
 import { CalendarSearch } from "./calendar-search";
 import { labels, timeLabel } from "./event-format";
 import { CalendarSkeleton, ReleaseSkeleton } from "./loading";
@@ -122,7 +122,7 @@ function CalendarContent({
     },
     [navigate],
   );
-  const compact = useCompactPreference();
+  const density = useDensityPreference();
   const preferred = useViewPreference();
   const view = resolveView(search, preferred);
   const initialView = preferred === "month" ? "month" : undefined;
@@ -351,7 +351,7 @@ function CalendarContent({
   }, []);
   return (
     <div
-      className={`app-shell${view !== "agenda" ? (compact ? " month-shell" : " expanded-shell") : ""}`}
+      className={`app-shell${view !== "agenda" ? (density === "compact" ? " month-shell" : density === "expanded" ? " expanded-shell" : " standard-shell") : ""}`}
       ref={content}
     >
       <a className="skip-link" href="#calendar">
@@ -504,7 +504,7 @@ function CalendarContent({
                   <CalendarDays size={15} /> Month
                 </Button>
               </div>
-              {view !== "agenda" && <CompactToggle value={compact} />}
+              {view !== "agenda" && <DensitySelect value={density} />}
             </div>
           </div>
           <div className="legend-row">
@@ -566,7 +566,7 @@ function CalendarContent({
                   <div className="month-grid">
                     <MonthCalendar
                       week={week}
-                      compact={compact}
+                      density={density}
                       standardMonth={view === "monthly"}
                       events={events}
                       config={config}

@@ -1,3 +1,4 @@
+import type { Density } from "./density-preference";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -27,7 +28,7 @@ function renderDay(info: DayCellContentArg) {
 export default memo(function MonthCalendar({
   week,
   standardMonth = false,
-  compact = true,
+  density = "standard",
   events,
   config,
   openEvent,
@@ -35,7 +36,7 @@ export default memo(function MonthCalendar({
 }: {
   week: string;
   standardMonth?: boolean;
-  compact?: boolean;
+  density?: Density;
   events: CalendarEvent[];
   config: PublicConfig;
   openEvent: (event: CalendarEvent) => void;
@@ -158,18 +159,20 @@ export default memo(function MonthCalendar({
       firstDay={0}
       initialDate={week}
       headerToolbar={false}
-      height={compact && fitScreen ? "100%" : "auto"}
-      expandRows={compact && fitScreen}
+      height={density === "compact" && fitScreen ? "100%" : "auto"}
+      expandRows={density === "compact" && fitScreen}
       stickyHeaderDates={true}
       fixedWeekCount={false}
       dayMaxEvents={
-        compact
+        density === "compact"
           ? fitScreen
             ? viewportHeight < 850
               ? true
               : cardLimit
             : 3
-          : false
+          : density === "standard"
+            ? 3
+            : false
       }
       eventOrderStrict={true}
       moreLinkClick="popover"

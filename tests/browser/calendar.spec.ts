@@ -2,58 +2,66 @@ import { test, expect } from "@playwright/test";
 import { demoSnapshot } from "../../scripts/demo";
 const fixed = new Date("2026-10-15T12:00:00Z");
 
-test("compact acknowledges clicks before layout and applies the latest choice", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await expect(page.locator(".month-shell .fc")).toBeVisible();
-  await page.clock.pauseAt(new Date("2026-10-15T12:01:00Z"));
-  const toggle = page.getByRole("checkbox", { name: "Compact", exact: true });
-  await toggle.uncheck();
-  await expect(toggle).not.toBeChecked();
-  await expect(page.locator(".month-shell .fc")).toBeVisible();
-  await toggle.check();
-  await toggle.uncheck();
-  await expect(toggle).not.toBeChecked();
-  await page.clock.runFor(100);
-  await expect(page.locator(".expanded-shell .fc")).toBeVisible();
-  expect(
-    await page.evaluate(() => localStorage.getItem("calendar.compact.v1")),
-  ).toBe("false");
-});
-
-test("compact preference switches between a fitted grid and full detailed cards", async ({
+test("density defaults to standard and remembers all three layouts", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  const compact = page.getByRole("checkbox", { name: "Compact", exact: true });
-  await expect(compact).toBeChecked();
-  await expect(page.locator(".month-shell .fc")).toBeVisible();
-  await compact.uncheck();
-  await expect(page.locator(".expanded-shell .fc")).toBeVisible();
-  await expect(page.locator(".event-content strong").first()).toHaveCSS(
-    "font-size",
-    "15px",
-  );
-  await expect(page.locator(".fc-daygrid-more-link")).toHaveCount(0);
+  const density = page.getByRole("combobox", { name: "Density", exact: true });
+  await expect(density).toHaveValue("standard");
+  await expect(page.locator(".standard-shell .fc")).toBeVisible();
   await expect(
-    page.locator(".fc-daygrid-event .episode-title").first(),
+    page.locator(".fc-daygrid-event:visible .episode-title").first(),
   ).toBeVisible();
+  const counts = await page
+    .locator(".fc-daygrid-day")
+    .evaluateAll((days) =>
+      days.map(
+        (day) =>
+          [...day.querySelectorAll(".fc-daygrid-event")].filter(
+            (event) => getComputedStyle(event).visibility !== "hidden",
+          ).length,
+      ),
+    );
+  expect(Math.max(...counts)).toBe(3);
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight),
   ).toBeGreaterThan(900);
+  await density.selectOption("expanded");
+  await expect(page.locator(".expanded-shell .fc")).toBeVisible();
+  await expect(page.locator(".fc-daygrid-more-link")).toHaveCount(0);
   await page.reload();
-  await expect(compact).not.toBeChecked();
-  await page.getByRole("button", { name: "Month", exact: true }).click();
-  await expect(compact).not.toBeChecked();
-  await expect(page.locator(".fc-dayGridMonth-view")).toBeVisible();
-  await compact.check();
+  await expect(density).toHaveValue("expanded");
+  await density.selectOption("compact");
   await expect(page.locator(".month-shell .fc")).toBeVisible();
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+  await expect(density).toHaveValue("compact");
+  await density.selectOption("standard");
+  await expect(
+    page.locator(".standard-shell .fc-dayGridMonth-view"),
+  ).toBeVisible();
   await page.reload();
-  await expect(compact).toBeChecked();
+  await expect(density).toHaveValue("standard");
   await page.getByRole("button", { name: "Upcoming", exact: true }).click();
-  await expect(compact).toHaveCount(0);
+  await expect(density).toHaveCount(0);
+});
+
+test("density acknowledges changes before layout and keeps the latest choice", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator(".standard-shell .fc")).toBeVisible();
+  await page.clock.pauseAt(new Date("2026-10-15T12:01:00Z"));
+  const density = page.getByRole("combobox", { name: "Density", exact: true });
+  await density.selectOption("compact");
+  await expect(density).toHaveValue("compact");
+  await expect(page.locator(".standard-shell .fc")).toBeVisible();
+  await density.selectOption("expanded");
+  await page.clock.runFor(100);
+  await expect(page.locator(".expanded-shell .fc")).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("calendar.density.v1")),
+  ).toBe("expanded");
 });
 
 test("search keeps typing local, highlights the whole field, and cancels pending text", async ({
@@ -84,7 +92,17 @@ test("search keeps typing local, highlights the whole field, and cancels pending
   await page.goto("/?q=Glass");
   await expect(input).toHaveValue("Glass");
 });
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, info) => {
+  // Existing fitted-layout regressions explicitly exercise Compact; density
+  // tests above cover the new Standard default and persistence.
+  if (!info.title.startsWith("density "))
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("calendar.density.v1", "compact");
+      } catch {
+        /* Restricted storage is tested separately. */
+      }
+    });
   await page.clock.install({ time: fixed });
 });
 test("production headers and real JSON errors", async ({ request }) => {

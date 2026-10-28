@@ -1,13 +1,16 @@
 import { useSyncExternalStore } from "react";
 
-const key = "calendar.compact.v1";
-const changed = "calendar-compact-changed";
-let fallback = true;
+const key = "calendar.density.v1";
+const changed = "calendar-density-changed";
+export type Density = "compact" | "standard" | "expanded";
+let fallback: Density = "standard";
 
 function read() {
   try {
     const value = localStorage.getItem(key);
-    return value === "false" ? false : value === "true" ? true : fallback;
+    return value === "compact" || value === "standard" || value === "expanded"
+      ? value
+      : fallback;
   } catch {
     return fallback;
   }
@@ -22,14 +25,14 @@ function subscribe(callback: () => void) {
   };
 }
 
-export function useCompactPreference() {
-  return useSyncExternalStore(subscribe, read, () => true);
+export function useDensityPreference() {
+  return useSyncExternalStore(subscribe, read, () => "standard" as Density);
 }
 
-export function saveCompactPreference(compact: boolean) {
-  fallback = compact;
+export function saveDensityPreference(density: Density) {
+  fallback = density;
   try {
-    localStorage.setItem(key, String(compact));
+    localStorage.setItem(key, density);
   } catch {
     // The preference still works for this session when storage is blocked.
   }
