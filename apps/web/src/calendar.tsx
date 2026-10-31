@@ -794,7 +794,9 @@ function CalendarContent({
         }}
       >
         {selected && (
-          <DialogContent onClose={() => focusReturn.current?.focus()}>
+          <DialogContent
+            onClose={() => focusReturn.current?.focus({ preventScroll: true })}
+          >
             <div className={`detail-icon ${selected.media}`}>
               {selected.media === "tv" ? <Tv size={26} /> : <Film size={26} />}
             </div>

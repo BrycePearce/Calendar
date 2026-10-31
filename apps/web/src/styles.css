@@ -26,6 +26,12 @@
 body {
   margin: 0;
 }
+@supports (scrollbar-gutter: stable) {
+  /* The root already reserves the scrollbar space that Radix compensates for. */
+  html body[data-scroll-locked] {
+    margin-right: 0 !important;
+  }
+}
 button,
 a,
 input {
