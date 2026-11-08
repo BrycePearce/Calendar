@@ -597,15 +597,18 @@ test("dark shell before assets load", async ({ page }) => {
 });
 
 test("compact header and prominent current day", async ({ page }, info) => {
+  const sunday = new Date("2026-11-08T12:00:00Z");
+  await page.clock.setFixedTime(sunday);
   await page.route("**/data/calendar.json", (route) =>
-    route.fulfill({ json: demoSnapshot(fixed) }),
+    route.fulfill({ json: demoSnapshot(sunday) }),
   );
-  await page.goto("/?week=2026-10-11&view=month");
+  await page.goto("/?week=2026-11-08&view=month");
   await expect(
     page.getByRole("heading", { name: "Calendar", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".intro")).toHaveCount(0);
   const today = page.locator(".fc-day-today");
+  await expect(today.locator(".today-number")).toHaveText("8");
   await expect(today.locator(".today-label")).toHaveText("Today");
   await expect(today).toHaveCSS("background-image", "none");
   await expect(today.locator(".fc-daygrid-day-frame")).toHaveCSS(

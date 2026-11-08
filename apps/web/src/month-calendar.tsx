@@ -20,7 +20,9 @@ const views = {
 };
 function renderDay(info: DayCellContentArg) {
   const number = document.createElement("span");
-  number.textContent = info.dayNumberText;
+  number.textContent = info.isToday
+    ? info.view.calendar.formatDate(info.date, { day: "numeric" })
+    : info.dayNumberText;
   if (!info.isToday) return { domNodes: [number] };
   number.className = "today-number";
   number.setAttribute("aria-current", "date");
