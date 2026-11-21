@@ -155,7 +155,6 @@ button:hover {
   background: #12151b;
   border: 1px solid var(--border);
   border-radius: 13px;
-  overflow: clip;
   box-shadow: 0 20px 65px #0002;
 }
 .toolbar {
@@ -165,6 +164,7 @@ button:hover {
   gap: 15px;
   padding: 18px 22px;
   border-bottom: 1px solid var(--border);
+  border-radius: 12px 12px 0 0;
   background: #14171d;
 }
 .segmented {
@@ -480,15 +480,23 @@ h2 > span {
   background: #1c222c;
   border: 1px solid #425064;
   box-shadow: 0 12px 50px #0009;
-  max-width: 310px;
+  width: min(310px, calc(100vw - 20px));
+  /* Allow for the reserved scrollbar gutter in FullCalendar's viewport fit. */
+  margin-left: -8px;
 }
 .fc .fc-popover-header {
   background: #293240;
   padding: 10px;
 }
-.fc .fc-popover-body {
+.fc .fc-more-popover .fc-popover-body {
+  min-width: 0;
   max-height: 60dvh;
   overflow-y: auto;
+}
+.fc-popover .event-content strong,
+.fc-popover .episode-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .panel-footer {
   display: flex;
@@ -1170,10 +1178,11 @@ h2 > span {
     max-height: 90dvh;
     overflow: auto;
   }
-  .month-grid {
+  /* FullCalendar mounts the popout beside the view, outside this scroller. */
+  .month-grid .fc-view {
     overflow: auto;
   }
-  .month-grid > .fc {
+  .month-grid .fc-scrollgrid {
     min-width: 680px;
   }
   .notice {

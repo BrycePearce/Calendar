@@ -582,6 +582,46 @@ test("month events and overflow support keyboard activation", async ({
   await expect(page.locator(".fc-popover")).toBeVisible();
 });
 
+test("Saturday overflow keeps the popout and long episode titles visible", async ({
+  page,
+}) => {
+  const data = demoSnapshot(fixed);
+  data.events = Array.from({ length: 4 }, (_, index) => ({
+    id: `sonarr:${index + 1}:air`,
+    media: "tv",
+    title: `Saturday release ${index + 1}`,
+    episodeTitle: "The Space Between Life and Death at the Edge of the World",
+    releaseType: "air",
+    at: `2026-11-28T1${index}:00:00Z`,
+  }));
+  await page.route("**/data/calendar.json", (route) =>
+    route.fulfill({ json: data }),
+  );
+  await page.goto("/?view=month&week=2026-11-22");
+  await page.locator('[data-date="2026-11-28"] .fc-daygrid-more-link').click();
+
+  const popout = page.locator(".fc-popover");
+  await expect(popout.locator(".fc-popover-title")).toHaveText(
+    "November 28, 2026",
+  );
+  await expect(popout.locator(".fc-event")).toHaveCount(4);
+  expect(
+    await popout.locator(".fc-popover-header").evaluate((header) => {
+      const { left, right, top, height } = header.getBoundingClientRect();
+      const y = top + height / 2;
+      return [left + 2, right - 2].every((x) =>
+        header.contains(document.elementFromPoint(x, y)),
+      );
+    }),
+  ).toBe(true);
+  const episode = popout.locator(".episode-title").first();
+  expect(await episode.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+    true,
+  );
+  await popout.locator(".fc-event").last().click();
+  await expect(page.getByRole("dialog")).toContainText("Saturday release 4");
+});
+
 test("dark shell before assets load", async ({ page }) => {
   await page.route(/\.(css|js)(\?.*)?$/, (route) => route.abort());
   await page.goto("/", { waitUntil: "domcontentloaded" });
