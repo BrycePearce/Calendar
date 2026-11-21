@@ -481,17 +481,26 @@ h2 > span {
   border: 1px solid #425064;
   box-shadow: 0 12px 50px #0009;
   width: min(310px, calc(100vw - 20px));
-  /* Allow for the reserved scrollbar gutter in FullCalendar's viewport fit. */
-  margin-left: -8px;
+}
+.fc .fc-popover[data-placement] {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+.fc .fc-popover[data-placement="above"] {
+  translate: 0 -100%;
 }
 .fc .fc-popover-header {
   background: #293240;
   padding: 10px;
+  flex-shrink: 0;
 }
 .fc .fc-more-popover .fc-popover-body {
   min-width: 0;
-  max-height: 60dvh;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .fc-popover .event-content strong,
 .fc-popover .episode-title {

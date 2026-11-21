@@ -622,6 +622,44 @@ test("Saturday overflow keeps the popout and long episode titles visible", async
   await expect(page.getByRole("dialog")).toContainText("Saturday release 4");
 });
 
+test("bottom-row overflow opens upward and scrolls without growing the page", async ({
+  page,
+}) => {
+  const data = demoSnapshot(new Date("2026-11-15T12:00:00Z"));
+  data.events = Array.from({ length: 20 }, (_, index) => ({
+    id: `sonarr:${index + 1}:air`,
+    media: "tv",
+    title: `Sunday release ${index + 1}`,
+    episodeTitle: "Everything we left behind",
+    releaseType: "air",
+    at: "2026-11-29T12:00:00Z",
+  }));
+  await page.route("**/data/calendar.json", (route) =>
+    route.fulfill({ json: data }),
+  );
+  await page.goto("/?view=monthly&month=2026-11");
+  const more = page.locator('[data-date="2026-11-29"] .fc-daygrid-more-link');
+  await more.evaluate((el) => el.scrollIntoView({ block: "end" }));
+  const pageSize = () =>
+    page.evaluate(() => [
+      document.documentElement.scrollHeight,
+      window.scrollY,
+    ]);
+  const before = await pageSize();
+  await more.click();
+
+  const popout = page.locator(".fc-popover");
+  await expect(popout).toHaveAttribute("data-placement", "above");
+  const list = popout.locator(".fc-popover-body");
+  await list.evaluate((el) => (el.scrollTop = el.scrollHeight));
+  expect(await list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  await expect(popout.locator(".fc-popover-title")).toBeInViewport();
+  await expect(popout.locator(".fc-event").last()).toBeInViewport();
+  expect(await pageSize()).toEqual(before);
+  await page.keyboard.press("Escape");
+  await expect(popout).toHaveCount(0);
+});
+
 test("dark shell before assets load", async ({ page }) => {
   await page.route(/\.(css|js)(\?.*)?$/, (route) => route.abort());
   await page.goto("/", { waitUntil: "domcontentloaded" });

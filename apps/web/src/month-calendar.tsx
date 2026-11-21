@@ -4,6 +4,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import type {
   DayCellContentArg,
+  DayCellMountArg,
   EventClickArg,
   EventContentArg,
 } from "@fullcalendar/core";
@@ -18,6 +19,70 @@ const plugins = [dayGridPlugin];
 const views = {
   rolling: { type: "dayGrid", duration: { weeks: 5 }, dateAlignment: "week" },
 };
+const popoutListeners = new WeakMap<HTMLElement, AbortController>();
+
+function mountDayPopout({ el }: DayCellMountArg) {
+  if (!el.classList.contains("fc-more-popover")) return;
+  const controller = new AbortController();
+  popoutListeners.set(el, controller);
+
+  // Let FullCalendar finish mounting and positioning its native popout first.
+  queueMicrotask(() => {
+    if (controller.signal.aborted) return;
+    const link = el
+      .closest(".fc")
+      ?.querySelector<HTMLElement>(`[aria-controls="${CSS.escape(el.id)}"]`);
+    const list = el.querySelector<HTMLElement>(".fc-popover-body");
+    if (!link || !list) return;
+
+    const viewport = window.visualViewport;
+    const position = (event?: Event) => {
+      if (event?.target instanceof Node && el.contains(event.target)) return;
+      const inset = 10;
+      const gap = 6;
+      const anchor = link.getBoundingClientRect();
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportLeft = viewport?.offsetLeft ?? 0;
+      const viewportBottom =
+        viewportTop + (viewport?.height ?? window.innerHeight);
+      const viewportRight = Math.min(
+        document.body.clientWidth,
+        viewportLeft + (viewport?.width ?? window.innerWidth),
+      );
+      if (anchor.bottom <= viewportTop || anchor.top >= viewportBottom) {
+        el.querySelector<HTMLElement>(".fc-popover-close")?.click();
+        return;
+      }
+
+      el.style.maxWidth = `${viewportRight - viewportLeft - 2 * inset}px`;
+      const contentHeight =
+        el.offsetHeight - list.clientHeight + list.scrollHeight;
+      const above = anchor.top - gap - viewportTop - inset;
+      const below = viewportBottom - inset - anchor.bottom - gap;
+      const opensAbove = below < contentHeight && above > below;
+      el.dataset.placement = opensAbove ? "above" : "below";
+      el.style.maxHeight = `${opensAbove ? above : below}px`;
+      el.style.top = `${opensAbove ? anchor.top - gap : anchor.bottom + gap}px`;
+      el.style.left = `${Math.max(
+        viewportLeft + inset,
+        Math.min(anchor.left, viewportRight - inset - el.offsetWidth),
+      )}px`;
+    };
+
+    const { signal } = controller;
+    window.addEventListener("scroll", position, { capture: true, signal });
+    window.addEventListener("resize", position, { signal });
+    viewport?.addEventListener("scroll", position, { signal });
+    viewport?.addEventListener("resize", position, { signal });
+    position();
+  });
+}
+
+function unmountDayPopout({ el }: DayCellMountArg) {
+  popoutListeners.get(el)?.abort();
+  popoutListeners.delete(el);
+}
+
 function renderDay(info: DayCellContentArg) {
   const number = document.createElement("span");
   number.textContent = info.isToday
@@ -187,6 +252,8 @@ export default memo(function MonthCalendar({
       selectable={false}
       timeZone={config.timezone}
       dayCellContent={renderDay}
+      dayCellDidMount={mountDayPopout}
+      dayCellWillUnmount={unmountDayPopout}
       events={calendarEvents}
       eventClick={handleEventClick}
       eventContent={renderEvent}
